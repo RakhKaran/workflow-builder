@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {authenticate} from '@loopback/authentication';
 import {
   Count,
   CountSchema,
@@ -8,23 +9,22 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  HttpErrors,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
-  HttpErrors,
 } from '@loopback/rest';
-import { WorkflowInstances } from '../models';
-import { WorkflowInstancesRepository, WorkflowRepository } from '../repositories';
-import { authenticate } from '@loopback/authentication';
-import { PermissionKeys } from '../authorization/permission-keys';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import {PermissionKeys} from '../authorization/permission-keys';
+import {WorkflowInstances} from '../models';
+import {WorkflowInstancesRepository, WorkflowRepository} from '../repositories';
 
 export class WorkflowInstancesController {
   constructor(
@@ -62,7 +62,7 @@ export class WorkflowInstancesController {
     }
 
     // Create the folder
-    fs.mkdirSync(folderPath, { recursive: true });
+    fs.mkdirSync(folderPath, {recursive: true});
     console.log(`Created folder: ${folderPath}`);
 
     return slugifyName;
@@ -70,12 +70,12 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @post('/workflow-instances')
   @response(200, {
     description: 'WorkflowInstances model instance',
-    content: { 'application/json': { schema: getModelSchemaRef(WorkflowInstances) } },
+    content: {'application/json': {schema: getModelSchemaRef(WorkflowInstances)}},
   })
   async create(
     @requestBody({
@@ -93,7 +93,7 @@ export class WorkflowInstancesController {
     const workflowData: any = await this.workflowRepository.findById(
       workflowInstances.workflowId,
       {
-        include: [{ relation: 'workflowBlueprint' }],
+        include: [{relation: 'workflowBlueprint'}],
       },
     );
 
@@ -107,23 +107,17 @@ export class WorkflowInstancesController {
       );
     }
 
-    const ingestionType = workflowData.workflowBlueprint?.bluePrint?.find(
-      (node: any) => node.nodeName === 'Ingestion',
-    );
-
-    if (!ingestionType) {
-      throw new HttpErrors.BadRequest(
-        'Blueprint is missing the "Ingestion" node.',
-      );
-    }
-
     const newWorkflowInstanceData: any = {
       ...workflowInstances,
     };
 
+    const ingestionType = workflowData.workflowBlueprint?.bluePrint?.find(
+      (node: any) => node.nodeName === 'Ingestion',
+    );
+
     if (
-      ingestionType?.component?.channelType === 'ui' ||
-      ingestionType?.component?.channelType === 'api'
+      ingestionType && (ingestionType?.component?.channelType === 'ui' ||
+        ingestionType?.component?.channelType === 'api')
     ) {
       const folderString = await this.createProcessFolder(
         workflowInstances.workflowInstanceName,
@@ -140,7 +134,7 @@ export class WorkflowInstancesController {
           {
             relation: 'workflow',
             scope: {
-              include: [{ relation: 'workflowBlueprint' }],
+              include: [{relation: 'workflowBlueprint'}],
             },
           },
         ],
@@ -152,12 +146,12 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @get('/workflow-instances/count')
   @response(200, {
     description: 'WorkflowInstances model count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async count(
     @param.where(WorkflowInstances) where?: Where<WorkflowInstances>,
@@ -167,7 +161,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @get('/workflow-instances')
   @response(200, {
@@ -176,7 +170,7 @@ export class WorkflowInstancesController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(WorkflowInstances, { includeRelations: true }),
+          items: getModelSchemaRef(WorkflowInstances, {includeRelations: true}),
         },
       },
     },
@@ -189,18 +183,18 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @patch('/workflow-instances')
   @response(200, {
     description: 'WorkflowInstances PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(WorkflowInstances, { partial: true }),
+          schema: getModelSchemaRef(WorkflowInstances, {partial: true}),
         },
       },
     })
@@ -212,25 +206,27 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @get('/workflow-instances/{id}')
   @response(200, {
     description: 'WorkflowInstances model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(WorkflowInstances, { includeRelations: true }),
+        schema: getModelSchemaRef(WorkflowInstances, {includeRelations: true}),
       },
     },
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(WorkflowInstances, { exclude: 'where' }) filter?: FilterExcludingWhere<WorkflowInstances>
+    @param.filter(WorkflowInstances, {exclude: 'where'}) filter?: FilterExcludingWhere<WorkflowInstances>
   ): Promise<WorkflowInstances> {
     return this.workflowInstancesRepository.findById(id,
-      {...filter,
+      {
+        ...filter,
         include: [
-          {relation: 'workflow',
+          {
+            relation: 'workflow',
             scope: {
               include: [
                 {relation: 'workflowBlueprint'}
@@ -244,7 +240,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @patch('/workflow-instances/{id}')
   @response(204, {
@@ -255,7 +251,7 @@ export class WorkflowInstancesController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(WorkflowInstances, { partial: true }),
+          schema: getModelSchemaRef(WorkflowInstances, {partial: true}),
         },
       },
     })
@@ -266,7 +262,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @put('/workflow-instances/{id}')
   @response(204, {
@@ -281,7 +277,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN] }
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
   })
   @del('/workflow-instances/{id}')
   @response(204, {

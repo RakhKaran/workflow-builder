@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  airflow-apiserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    volumes:
+      - ./src/dags:/opt/airflow/dags
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
+      - workflow_db:/opt/airflow # persistent DB storage (directory, not file)
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    command: api-server
+    ports:
+      - "8080:8080"
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    volumes:
+      - ./src/dags:/opt/airflow/dags
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
+      - workflow_db:/opt/airflow # same volume as webserver
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    command: scheduler
+
+  lb4-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./dist:/usr/src/app/dist
+      - ./package.json:/usr/src/app/package.json
+    command: node dist/scripts/run-main.js
+
+volumes:
+  workflow_db:
