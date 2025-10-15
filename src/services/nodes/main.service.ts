@@ -1,181 +1,192 @@
-import { repository } from "@loopback/repository";
-import { WorkflowInstancesRepository } from "../../repositories";
-import { IngestionService } from "./ingestion.service";
-import { inject } from "@loopback/core";
-import { NotificationService } from "./notification.service";
-import { CaseService } from "./case.service";
+import {Getter, inject} from "@loopback/core";
+import {repository} from "@loopback/repository";
+import {WorkflowInstancesRepository, WorkflowOutputsRepository} from "../../repositories";
+import {APIService} from './api.service';
+import {CaseService} from "./case.service";
+import {IngestionService} from "./ingestion.service";
+import {NotificationService} from "./notification.service";
+import {WebhookService} from './webhook.service';
 
 export class Main {
   constructor(
     @repository(WorkflowInstancesRepository)
     public workflowInstancesRepository: WorkflowInstancesRepository,
+    @repository(WorkflowOutputsRepository)
+    public workflowOutputsRepository: WorkflowOutputsRepository,
     @inject('services.IngestionService')
     private ingestionService: IngestionService,
     @inject('services.NotificationService')
     private notificationService: NotificationService,
     @inject('services.CaseService')
     private caseService: CaseService,
+    @inject.getter('services.WebhookService')
+    private getWebhookService: Getter<WebhookService>,
+    @inject('services.APIService')
+    private apiService: APIService,
   ) { }
 
   // Register available services
-  servicesMapper = [
-    { nodeType: "ingestion", service: this.ingestionService.ingestion.bind(this.ingestionService) },
-    { nodeType: "notification", service: this.notificationService.notification.bind(this.notificationService) },
-    { nodeType: "case", service: this.caseService.caseFunction.bind(this.caseService) },
-  ];
+  async servicesMapper() {
+    const webhookService = await this.getWebhookService();
 
-  async main() {
+    return [
+      {nodeType: "ingestion", service: this.ingestionService.ingestion.bind(this.ingestionService)},
+      {nodeType: "notification", service: this.notificationService.notification.bind(this.notificationService)},
+      {nodeType: "case", service: this.caseService.caseFunction.bind(this.caseService)},
+      {nodeType: "webhook", service: webhookService.webhookTrigger.bind(webhookService)},
+      {nodeType: "api", service: this.apiService.api.bind(this.apiService)},
+    ];
+  }
+
+  async main(outputId: string) {
     try {
-      const currentRunningWorkflowInstances =
-        await this.workflowInstancesRepository.find({
-          where: { isInstanceRunning: true },
+      const workflowOutput = await this.workflowOutputsRepository.findById(outputId);
+      const currentRunningWorkflowInstance =
+        await this.workflowInstancesRepository.findById(workflowOutput.workflowInstancesId, {
           include: [
             {
               relation: "workflow",
-              scope: { include: [{ relation: "workflowBlueprint" }] },
+              scope: {include: [{relation: "workflowBlueprint"}]},
             },
           ],
         });
 
-      if (currentRunningWorkflowInstances.length === 0) {
+      if (!currentRunningWorkflowInstance) {
         return {
-          message: "No workflow instance is running",
-          count: 0,
-          instances: [],
+          message: "No workflow instance found",
         };
       }
 
       // Run each workflow instance sequentially
-      const executionResults = [];
-      for (const workflowInstance of currentRunningWorkflowInstances) {
-        const workflow = (workflowInstance as any).workflow;
-        const workflowBlueprint = workflow?.workflowBlueprint;
+      let executionResult = {};
+      const workflow = (currentRunningWorkflowInstance as any).workflow;
+      const workflowBlueprint = workflow?.workflowBlueprint;
 
-        const nodesData = workflowBlueprint?.nodes ?? [];
-        const outputData: Array<{
-          nodeId: string;
-          nodeName: string;
-          output: any;
-          error?: string;
-        }> = [];
+      const nodesData = workflowBlueprint?.nodes ?? [];
+      const outputData: Array<{
+        nodeId: string;
+        nodeName: string;
+        output: any;
+        error?: string;
+      }> = [];
 
-        // Sequential execution of nodes
-        for (const node of nodesData) {
-          try {
-            if (node.type === 'decision') {
-              // 1️⃣ Get all case node IDs from edges
-              const caseNodeIds = workflowBlueprint?.edges
-                .filter((edge: any) => edge.source === node.id)
-                .map((edge: any) => edge.target);
+      // Sequential execution of nodes
+      for (const node of nodesData) {
+        try {
+          const servicesArray = await this.servicesMapper();
+          if (node.type === 'decision') {
+            // 1️⃣ Get all case node IDs from edges
+            const caseNodeIds = workflowBlueprint?.edges
+              .filter((edge: any) => edge.source === node.id)
+              .map((edge: any) => edge.target);
 
-              // 2️⃣ Execute each case node
-              let caseResultNodeId: string | null = null;
-              for (const caseId of caseNodeIds) {
-                const caseNode = nodesData.find((n: any) => n.id === caseId);
-                if (!caseNode) continue;
+            // 2️⃣ Execute each case node
+            let caseResultNodeId: string | null = null;
+            for (const caseId of caseNodeIds) {
+              const caseNode = nodesData.find((n: any) => n.id === caseId);
+              if (!caseNode) continue;
 
-                const serviceDef = this.servicesMapper.find(
-                  (item) => item.nodeType === caseNode.type
-                );
-                if (!serviceDef) throw new Error(`No service mapped for nodeType: ${caseNode.type}`);
+              const serviceDef = servicesArray.find(
+                (item) => item.nodeType === caseNode.type
+              );
+              if (!serviceDef) throw new Error(`No service mapped for nodeType: ${caseNode.type}`);
 
-                const caseNodeConfig = workflowBlueprint?.bluePrint?.find(
-                  (item: any) => item.id === caseId
-                );
+              const caseNodeConfig = workflowBlueprint?.bluePrint?.find(
+                (item: any) => item.id === caseId
+              );
 
-                const result: any = await serviceDef.service(caseNodeConfig, outputData, workflowInstance);
+              const result: any = await serviceDef.service(caseNodeConfig, outputData, currentRunningWorkflowInstance, outputId);
 
-                outputData.push({
-                  nodeId: caseNode.id,
-                  nodeName: caseNode.name,
-                  output: result,
-                });
+              outputData.push({
+                nodeId: caseNode.id,
+                nodeName: caseNode.name,
+                output: result,
+              });
 
-                // If the case returns true, we will trace this path
-                console.log('result', result?.input);
-                if (result?.input?.success === true) {
-                  caseResultNodeId = caseNode.id;
-                  break; // Stop after first true case
-                }
+              // If the case returns true, we will trace this path
+              console.log('result', result?.input);
+              if (result?.input?.success === true) {
+                caseResultNodeId = caseNode.id;
+                break; // Stop after first true case
               }
+            }
 
-              // 3️⃣ Trace next nodes based on edges from the true case
-              let nextNodeId = caseResultNodeId;
+            // 3️⃣ Trace next nodes based on edges from the true case
+            let nextNodeId = caseResultNodeId;
+            console.log('nextNodeId', nextNodeId);
+            while (nextNodeId) {
               console.log('nextNodeId', nextNodeId);
-              while (nextNodeId) {
-                console.log('nextNodeId', nextNodeId);
-                const edge = workflowBlueprint?.edges.find((e: any) => e.source === nextNodeId);
-                if (!edge) break;
+              const edge = workflowBlueprint?.edges.find((e: any) => e.source === nextNodeId);
+              if (!edge) break;
 
-                const nextNode = nodesData.find((n: any) => n.id === edge.target);
-                if (!nextNode) break;
+              const nextNode = nodesData.find((n: any) => n.id === edge.target);
+              if (!nextNode) break;
 
-                const serviceDef = this.servicesMapper.find(
-                  (item) => item.nodeType === nextNode.type
-                );
-                if (!serviceDef) throw new Error(`No service mapped for nodeType: ${nextNode.type}`);
+              const serviceDef = servicesArray.find(
+                (item) => item.nodeType === nextNode.type
+              );
+              if (!serviceDef) throw new Error(`No service mapped for nodeType: ${nextNode.type}`);
 
-                const nextNodeConfig = workflowBlueprint?.bluePrint?.find(
-                  (item: any) => item.id === nextNode.id
-                );
+              const nextNodeConfig = workflowBlueprint?.bluePrint?.find(
+                (item: any) => item.id === nextNode.id
+              );
 
-                const result: any = await serviceDef.service(nextNodeConfig, outputData, workflowInstance);
+              const result: any = await serviceDef.service(nextNodeConfig, outputData, currentRunningWorkflowInstance, outputId);
 
-                outputData.push({
-                  nodeId: nextNode.id,
-                  nodeName: nextNode.name,
-                  output: result,
-                });
+              outputData.push({
+                nodeId: nextNode.id,
+                nodeName: nextNode.name,
+                output: result,
+              });
 
-                nextNodeId = nextNode.id;
-              }
-
-              continue;
+              nextNodeId = nextNode.id;
             }
 
-            // Normal execution for non-decision nodes
-            const serviceDef = this.servicesMapper.find(
-              (item) => item.nodeType === node.type
-            );
-            if (!serviceDef) {
-              throw new Error(`No service mapped for nodeType: ${node.type}`);
-            }
-
-            const nodeConfig = workflowBlueprint?.bluePrint?.find(
-              (item: any) => item.id === node.id
-            );
-
-            const result: any = await serviceDef.service(nodeConfig, outputData, workflowInstance);
-
-            outputData.push({
-              nodeId: node.id,
-              nodeName: node.name,
-              output: result,
-            });
-          } catch (err: any) {
-            outputData.push({
-              nodeId: node.id,
-              nodeName: node.name,
-              output: null,
-              error: err.message,
-            });
-            break;
+            continue;
           }
-        }
 
-        executionResults.push({
-          workflowInstanceId: workflowInstance.id,
-          status: outputData.some((n) => n.error) ? "failed" : "completed",
-          results: outputData,
-        });
+          // Normal execution for non-decision nodes
+          const serviceDef = servicesArray.find(
+            (item) => item.nodeType === node.type
+          );
+          if (!serviceDef) {
+            throw new Error(`No service mapped for nodeType: ${node.type}`);
+          }
+
+          const nodeConfig = workflowBlueprint?.bluePrint?.find(
+            (item: any) => item.id === node.id
+          );
+
+          const result: any = await serviceDef.service(nodeConfig, outputData, currentRunningWorkflowInstance, outputId);
+
+          outputData.push({
+            nodeId: node.id,
+            nodeName: node.name,
+            output: result,
+          });
+        } catch (err: any) {
+          outputData.push({
+            nodeId: node.id,
+            nodeName: node.name,
+            output: null,
+            error: err.message,
+          });
+          break;
+        }
       }
 
+      executionResult = {
+        workflowInstanceId: currentRunningWorkflowInstance.id,
+        status: outputData.some((n) => n.error) ? "failed" : "completed",
+        results: outputData,
+      };
+
+      await this.workflowOutputsRepository.updateById(outputId, {status: 1});
       return {
         message: "Workflow execution finished",
-        count: executionResults.length,
-        instances: executionResults,
       };
     } catch (error) {
+      await this.workflowOutputsRepository.updateById(outputId, {status: 2});
       throw error;
     }
   }

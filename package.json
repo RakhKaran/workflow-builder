@@ -57,6 +57,8 @@
     "@loopback/rest": "^15.0.3",
     "@loopback/rest-explorer": "^8.0.3",
     "@loopback/service-proxy": "^8.0.2",
+    "axios": "^1.12.2",
+    "form-data": "^4.0.4",
     "jsonwebtoken": "^9.0.2",
     "loopback-connector-mongodb": "^6.3.1",
     "multer": "^2.0.2",

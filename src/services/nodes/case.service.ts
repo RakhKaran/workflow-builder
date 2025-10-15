@@ -13,7 +13,7 @@ type ArrayConditionKey = keyof typeof arrayConditions;
 export class CaseService {
     constructor() { }
 
-    async caseFunction(data: any, previousOutputs: any[], workflowInstanceData: any) {
+    async caseFunction(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
         try {
             const currentNode = workflowInstanceData?.workflow?.workflowBlueprint?.nodes
                 ?.find((node: any) => node?.id === data?.id);

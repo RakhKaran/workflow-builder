@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Main } from "../services/nodes/main.service";
+import {Main} from "../services/nodes/main.service";
 // import { WorkflowInstancesRepository } from "../repositories";
-import { WorkflowBuilderApplication } from "../application";
-import { ApplicationConfig } from "@loopback/core";
+import {ApplicationConfig} from "@loopback/core";
+import {WorkflowBuilderApplication} from "../application";
 
 async function main() {
     const config: ApplicationConfig = {
@@ -21,10 +21,10 @@ async function main() {
     const mainService = await app.get<Main>('services.Main');
 
     try {
-        const result = await mainService.main();
+        const result = await mainService.main('');  // change it later
         console.log(JSON.stringify(result));
     } catch (err: any) {
-        console.error(JSON.stringify({ error: err.message }));
+        console.error(JSON.stringify({error: err.message}));
         process.exit(1);
     } finally {
         console.log('stopping the app');

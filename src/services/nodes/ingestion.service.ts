@@ -16,7 +16,7 @@ export class IngestionService {
         public processWorkflowOutputRepository: ProcessWorkflowOutputRepository,
     ) { }
 
-    async ingestion(data: any, previousOutputs: any[], workflowInstanceData: any) {
+    async ingestion(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
         try {
             if (data) {
                 const component = data?.component || null;

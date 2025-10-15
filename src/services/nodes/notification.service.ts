@@ -1,7 +1,9 @@
-import { inject } from "@loopback/core";
-import { EmailManagerBindings } from "../../keys";
-import { EmailManager } from "../email.service";
+import {inject} from "@loopback/core";
+import {repository} from '@loopback/repository';
+import {EmailManagerBindings} from "../../keys";
+import {NodeOutputRepository} from '../../repositories';
 import SITE_SETTINGS from "../../utils/config";
+import {EmailManager} from "../email.service";
 
 interface EmailComponent {
   notificationSource: 'email';
@@ -14,14 +16,22 @@ export class NotificationService {
   constructor(
     @inject(EmailManagerBindings.SEND_MAIL)
     public emailManager: EmailManager,
+    @repository(NodeOutputRepository)
+    public nodeOutputRepository: NodeOutputRepository,
   ) { }
 
-  async notification(data: any, previousOutputs: any[], workflowInstanceData: any) {
+  async notification(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
     try {
       const component = data?.component ?? null;
 
       if (component?.notificationSource === 'email') {
         const result = await this.notificationSourceEmail(component);
+        await this.nodeOutputRepository.create({
+          workflowOutputsId: outputDataId,
+          status: 1,
+          nodeId: data.id,
+          output: result
+        })
         return {
           status: "success",
           timestamp: new Date().toISOString(),
@@ -36,6 +46,12 @@ export class NotificationService {
       };
     } catch (error: any) {
       console.error("NotificationService.notification error:", error);
+      await this.nodeOutputRepository.create({
+        workflowOutputsId: outputDataId,
+        status: 0,
+        nodeId: data.id,
+        error: error
+      })
       throw new Error(`Notification failed: ${error.message}`);
     }
   }
@@ -53,7 +69,7 @@ export class NotificationService {
           await this.emailManager.sendMail(mailOptions);
         }
       }
-      return { success: true };
+      return {success: true};
     } catch (error: any) {
       console.error("NotificationService.notificationSourceEmail error:", error);
       throw new Error(`Email notification failed: ${error.message}`);
