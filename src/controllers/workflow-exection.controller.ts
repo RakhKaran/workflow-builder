@@ -1,14 +1,17 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
-import {HttpErrors, param, post, Request, requestBody, RestBindings} from '@loopback/rest';
+import {get, HttpErrors, param, post, Request, requestBody, RestBindings} from '@loopback/rest';
 import {IncomingHttpHeaders} from 'http';
-import {WorkflowInstancesRepository} from '../repositories';
+import {WorkflowOutputs} from '../models';
+import {WorkflowInstancesRepository, WorkflowOutputsRepository} from '../repositories';
 import {WebhookService} from '../services/nodes/webhook.service';
 
 export class WorkflowExecutionController {
   constructor(
     @repository(WorkflowInstancesRepository)
     public workflowInstancesRepository: WorkflowInstancesRepository,
+    @repository(WorkflowOutputsRepository)
+    public workflowOutputsRepository: WorkflowOutputsRepository,
     @inject('services.WebhookService')
     public webhookService: WebhookService,
   ) { }
@@ -73,6 +76,37 @@ export class WorkflowExecutionController {
     } catch (error) {
       console.error('Error executing webhook:', error);
       throw new HttpErrors.InternalServerError(error);
+    }
+  }
+
+  @get('/workflow-instances/logs/{instanceId}')
+  async workflowInstanceOutputLogs(
+    @param.path.string('instanceId') instanceId: string,
+  ): Promise<WorkflowOutputs[]> {
+    const outputs = await this.workflowOutputsRepository.find({
+      where: {
+        workflowInstancesId: instanceId
+      },
+      include: [
+        {relation: 'workflowInstances'},
+        {relation: 'nodeOutputs'}
+      ],
+      order: ['createdAt desc']
+    });
+
+    return outputs;
+  }
+
+  // test-api
+  @get('/test')
+  async testAPI(): Promise<{success: boolean; message: string}> {
+    try {
+      return {
+        success: true,
+        message: "API success"
+      }
+    } catch (error) {
+      throw error;
     }
   }
 }

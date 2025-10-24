@@ -1,4 +1,4 @@
-import { Entity, model, property, belongsTo} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
 import {Workflow} from './workflow.model';
 
 @model()
@@ -30,6 +30,12 @@ export class WorkflowBlueprint extends Entity {
     required: true
   })
   bluePrint: object[];
+
+  @property({
+    type: 'string',
+    required: true
+  })
+  direction: string;
 
   @property({
     type: 'date',

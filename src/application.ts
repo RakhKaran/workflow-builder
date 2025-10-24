@@ -18,6 +18,7 @@ import {Main} from './services/nodes/main.service';
 import {NotificationService} from './services/nodes/notification.service';
 import {WebhookService} from './services/nodes/webhook.service';
 import {APIService} from './services/nodes/api.service';
+import {VariableService} from './services/nodes/variable.service';
 
 export {ApplicationConfig};
 
@@ -63,6 +64,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.CaseService').toClass(CaseService);
     this.bind('services.WebhookService').toClass(WebhookService);
     this.bind('services.APIService').toClass(APIService);
+    this.bind('services.VariableService').toClass(VariableService);
   }
 
   protected configureFileUpload(destination?: string) {
