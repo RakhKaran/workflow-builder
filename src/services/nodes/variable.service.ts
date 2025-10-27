@@ -34,6 +34,11 @@ export class VariableService {
           for (const prev of previousOutputs) {
             if (prev.output && prev.output.data) {
 
+              if (path === "data") {
+                foundValue = prev.output.data; // ✅ direct match
+                break;
+              }
+
               // Support nested paths like 'user.id'
               const parts = path.split('.');
               let temp = prev.output.data;
@@ -83,6 +88,42 @@ export class VariableService {
         error: error.message || error,
       });
       throw new Error(`Notification failed: ${error.message}`);
+    }
+  }
+
+  async getVariableValue(
+    variableStr: string,
+    previousOutputs: any[]
+  ) {
+    try {
+      console.log('variableStr', variableStr);
+      if (!variableStr || typeof variableStr !== 'string') return null;
+
+      // Check if variableStr is dynamic and matches {{nodeId.variableName}}
+      const match = variableStr.match(/^{{(.+?)\.(.+?)}}$/);
+      if (!match) return variableStr; // if not dynamic, return as-is
+
+      const nodeId = match[1].trim();
+      const varName = match[2].trim();
+
+      // Find previous output for this nodeId
+      const nodeOutput = previousOutputs.find(
+        (prev) => prev.nodeId?.toString() === nodeId
+      );
+
+      console.log('nodeOutput', nodeOutput.output);
+
+      if (!nodeOutput) return null;
+
+      // Find the variable value inside the output
+      const variable = nodeOutput.output.data.find(
+        (v: any) => v.variableName === varName
+      );
+
+      return variable?.variableValue ?? null;
+    } catch (error) {
+      console.log(error);
+      throw new Error(`getVariableValue failed: ${error.message}`);
     }
   }
 }

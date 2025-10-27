@@ -12,13 +12,14 @@ import path from 'path';
 import {EmailManagerBindings, FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY} from './keys';
 import {MySequence} from './sequence';
 import {EmailService} from './services/email.service';
+import {APIService} from './services/nodes/api.service';
 import {CaseService} from './services/nodes/case.service';
 import {IngestionService} from './services/nodes/ingestion.service';
+import {IteratorService} from './services/nodes/iterator.service';
 import {Main} from './services/nodes/main.service';
 import {NotificationService} from './services/nodes/notification.service';
-import {WebhookService} from './services/nodes/webhook.service';
-import {APIService} from './services/nodes/api.service';
 import {VariableService} from './services/nodes/variable.service';
+import {WebhookService} from './services/nodes/webhook.service';
 
 export {ApplicationConfig};
 
@@ -65,6 +66,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.WebhookService').toClass(WebhookService);
     this.bind('services.APIService').toClass(APIService);
     this.bind('services.VariableService').toClass(VariableService);
+    this.bind('services.IteratorService').toClass(IteratorService);
   }
 
   protected configureFileUpload(destination?: string) {

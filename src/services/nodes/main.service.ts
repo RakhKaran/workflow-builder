@@ -7,6 +7,7 @@ import {IngestionService} from "./ingestion.service";
 import {NotificationService} from "./notification.service";
 import {VariableService} from './variable.service';
 import {WebhookService} from './webhook.service';
+import {IteratorService} from './iterator.service';
 
 export class Main {
   constructor(
@@ -26,6 +27,8 @@ export class Main {
     private apiService: APIService,
     @inject('services.VariableService')
     private variableService: VariableService,
+    @inject('services.IteratorService')
+    private iteratorService: IteratorService,
   ) { }
 
   // Register available services
@@ -39,6 +42,7 @@ export class Main {
       {nodeType: "webhook", service: webhookService.webhookTrigger.bind(webhookService)},
       {nodeType: "api", service: this.apiService.api.bind(this.apiService)},
       {nodeType: "variable", service: this.variableService.setVariables.bind(this.variableService)},
+      {nodeType: "iterator", service: this.iteratorService.iterator.bind(this.iteratorService)},
     ];
   }
 
@@ -160,7 +164,6 @@ export class Main {
       nextNodeId = edge.target;
     }
   }
-
 
   async main(outputId: string) {
     try {

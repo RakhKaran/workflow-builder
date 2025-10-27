@@ -109,4 +109,17 @@ export class WorkflowExecutionController {
       throw error;
     }
   }
+
+  @get('/access-token')
+  async accessToken(): Promise<{success: boolean; message: string; token: string}> {
+    try {
+      return {
+        success: true,
+        message: "Access Token retrived successfully.",
+        token: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJuYW1lIjoiS2FyYW4iLCJlbWFpbCI6ImthcmFucmFraDE5QGdtYWlsLmNvbSIsInBlcm1pc3Npb25zIjpbInN1cGVyX2FkbWluIl0sInVzZXJUeXBlIjoiYWRtaW4iLCJpYXQiOjE3NjEzNjgzMTYsImV4cCI6MTc2MTM5MzUxNn0.TePnyg7XixbXEAyK816nxJv6JfP58fZbDGMU2NmIE3I"
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
 }
