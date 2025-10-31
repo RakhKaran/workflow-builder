@@ -33,15 +33,14 @@ export class APIService {
 
       // 🔄 Resolve variables in all dynamic fields
       const resolveValue = async (value: any): Promise<any> => {
-        console.log('value', value);
         if (typeof value !== 'string') return value;
         const matches = value.match(/{{(.*?)}}/g);
         if (!matches) return value;
 
         let resolved = value;
         for (const match of matches) {
-          // First try VariableService
-          let foundValue = await this.variableService.getVariableValue(value, previousOutputs);
+          const variableKey = match.replace(/[{}]/g, '').trim(); // e.g. 4.firstName
+          const foundValue = await this.variableService.getVariableValue(variableKey, previousOutputs);
           resolved = resolved.replace(match, foundValue ?? '');
         }
         return resolved;
