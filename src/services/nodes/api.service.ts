@@ -79,6 +79,7 @@ export class APIService {
           const resolvedBody = await resolveValue(component.requestContent);
           try {
             config.data = JSON.parse(resolvedBody);
+            console.log('resolved body', resolvedBody);
           } catch {
             config.data = resolvedBody; // fallback
           }
