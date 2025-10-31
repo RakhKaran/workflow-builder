@@ -39,12 +39,12 @@ export class APIService {
 
         let resolved = value;
         for (const match of matches) {
-          const variableKey = match.replace(/[{}]/g, '').trim(); // e.g. 4.firstName
-          const foundValue = await this.variableService.getVariableValue(variableKey, previousOutputs);
+          const foundValue = await this.variableService.getVariableValue(match, previousOutputs);
           resolved = resolved.replace(match, foundValue ?? '');
         }
         return resolved;
       };
+
 
       // 1️⃣ Build Axios config with resolved values
       const config: AxiosRequestConfig = {
