@@ -77,6 +77,7 @@ export class APIService {
         if (component.bodyType === 1 && component.requestContent) {
           // JSON Raw
           const resolvedBody = await resolveValue(component.requestContent);
+          console.log('resolved body 1', resolvedBody);
           try {
             config.data = JSON.parse(resolvedBody);
             console.log('resolved body', resolvedBody);
