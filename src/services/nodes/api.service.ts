@@ -39,8 +39,16 @@ export class APIService {
 
         let resolved = value;
         for (const match of matches) {
-          const foundValue = await this.variableService.getVariableValue(match, previousOutputs);
-          resolved = resolved.replace(match, foundValue ?? '');
+          const variableKey = match.replace(/[{}]/g, '').trim();
+          const foundValue = await this.variableService.getVariableValue(variableKey, previousOutputs);
+
+          let replacementValue = foundValue;
+          // 👇 If it's a string and not already quoted, add quotes
+          if (typeof foundValue === 'string' && !/^".*"$/.test(foundValue)) {
+            replacementValue = `"${foundValue}"`;
+          }
+
+          resolved = resolved.replace(match, replacementValue ?? '""');
         }
         return resolved;
       };
