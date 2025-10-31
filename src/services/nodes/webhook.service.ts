@@ -91,10 +91,11 @@ export class WebhookService {
 
       // ✅ 2. Validate request body (if user defined one)
       if (component.requestBody) {
+        console.log('bodydata', component.requestBody);
         const expectedBody = JSON.parse(component.requestBody);
-
+        console.log('coming bodydata', body);
         // Deep compare objects
-        const isSameBody = this.deepCompareObjects(expectedBody, body);
+        const isSameBody = this.deepCompareObjectsByType(expectedBody, body);
         if (!isSameBody) {
           throw new HttpErrors.BadRequest('Request body does not match expected schema');
         }
@@ -158,18 +159,33 @@ export class WebhookService {
   /**
    * Utility function for deep comparison between two objects
    */
-  private deepCompareObjects(obj1: any, obj2: any): boolean {
-    if (typeof obj1 !== typeof obj2) return false;
-    if (typeof obj1 !== 'object' || obj1 === null || obj2 === null) {
-      return obj1 === obj2;
+  private deepCompareObjectsByType(obj1: any, obj2: any): boolean {
+    // If one is null and the other isn't
+    if (obj1 === null || obj2 === null) return obj1 === obj2;
+
+    // Compare types directly
+    if (Array.isArray(obj1) && Array.isArray(obj2)) {
+      if (obj1.length === 0 || obj2.length === 0) return true; // ignore empty array case
+      // Compare type of first element in both arrays
+      return this.deepCompareObjectsByType(obj1[0], obj2[0]);
     }
 
+    if (typeof obj1 !== typeof obj2) return false;
+
+    // If it's not an object (string, number, boolean, etc.)
+    if (typeof obj1 !== 'object') {
+      return typeof obj1 === typeof obj2;
+    }
+
+    // For object type — check keys and their value types
     const keys1 = Object.keys(obj1);
     const keys2 = Object.keys(obj2);
+
     if (keys1.length !== keys2.length) return false;
 
     for (const key of keys1) {
-      if (!this.deepCompareObjects(obj1[key], obj2[key])) return false;
+      if (!(key in obj2)) return false;
+      if (!this.deepCompareObjectsByType(obj1[key], obj2[key])) return false;
     }
 
     return true;
