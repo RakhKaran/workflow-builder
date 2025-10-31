@@ -40,7 +40,7 @@ export class APIService {
         let resolved = value;
         for (const match of matches) {
           const variableKey = match.replace(/[{}]/g, '').trim();
-          const foundValue = await this.variableService.getVariableValue(variableKey, previousOutputs);
+          const foundValue = await this.variableService.getVariableValue(`{{variableKey}}`, previousOutputs);
 
           let replacementValue = foundValue;
           // 👇 If it's a string and not already quoted, add quotes
