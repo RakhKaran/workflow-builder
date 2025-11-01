@@ -76,6 +76,7 @@ export class Main {
     outputData.push({
       nodeId: node.id,
       nodeName: node.name,
+      type: node.type,
       output: result,
     });
 

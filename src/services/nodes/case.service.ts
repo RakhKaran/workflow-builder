@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {NodeOutputRepository} from '../../repositories';
 import {
@@ -6,6 +7,7 @@ import {
     numberConditions,
     stringConditions,
 } from "../../utils/conditionCheckers";
+import {VariableService} from './variable.service';
 
 type StringConditionKey = keyof typeof stringConditions;
 type NumberConditionKey = keyof typeof numberConditions;
@@ -16,6 +18,8 @@ export class CaseService {
     constructor(
         @repository(NodeOutputRepository)
         public nodeOutputRepository: NodeOutputRepository,
+        @inject('services.VariableService')
+        private variableService: VariableService,
     ) { }
 
     // helper to resolve dynamic variables
@@ -64,36 +68,66 @@ export class CaseService {
             const logicalOperator = blueprint.logicalOperator || "AND";
             const conditions = blueprint.conditions || [];
 
-            const parentOutput = previousOutputs.find(
-                (out) => out.nodeId === parentNodeId
+            const parentOutput = previousOutputs.filter(
+                (out) => out.type === 'variable'
             );
 
-            console.log('parent output', parentOutput);
-
-            if (!parentOutput) {
+            if (!parentOutput || parentOutput.length === 0) {
                 return {success: false, reason: "Missing parent output"};
             }
 
-            const results = conditions.map((cond: any) => {
+            // 🔄 Resolve variables in all dynamic fields
+            const resolveDynamicValue = async (value: any): Promise<any> => {
+                if (typeof value !== 'string') return value;
+                const matches = value.match(/{{(.*?)}}/g);
+                if (!matches) return value;
+
+                let resolved = value;
+                for (const match of matches) {
+                    const variableKey = match.replace(/[{}]/g, '').trim();
+                    const foundValue = await this.variableService.getVariableValue(`{{${variableKey}}}`, previousOutputs);
+
+                    let replacementValue = foundValue;
+                    // 👇 If it's a string and not already quoted, add quotes
+                    // if (typeof foundValue === 'string' && !/^".*"$/.test(foundValue)) {
+                    //     replacementValue = `"${foundValue}"`;
+                    // }
+
+                    resolved = resolved.replace(match, replacementValue ?? '""');
+                }
+                return resolved;
+            };
+
+
+            const results = await Promise.all(conditions.map(async (cond: any) => {
                 console.log('condtion', cond);
-                console.log('parentOutput', parentOutput?.output?.data);
+                const parentOutputData = parentOutput
+                    .map(output => Array.isArray(output.output?.data) ? output.output.data : [])
+                    .flat();
+                console.log('parentOutputData', parentOutputData);
                 let fieldValue: any;
 
-                const data = parentOutput?.output?.data;
+                const data = parentOutputData;
                 if (Array.isArray(data)) {
+                    console.log('data', data);
                     const found = data.find((item) => item.variableName === cond.field);
+                    console.log('found 1', found);
                     fieldValue = found?.variableValue;
                 }
                 // Case 2: If data is an object
                 else if (data && typeof data === 'object') {
+                    console.log('entered 1');
                     fieldValue = data[cond.field];
                 }
 
                 // Fallback: undefined
                 else {
+                    console.log('entered 2');
                     fieldValue = undefined;
                 }
-                const resolvedValue = this.resolveValue(cond.value, previousOutputs);
+
+                const dynamicResolvedValue = await resolveDynamicValue(cond.value);
+                const resolvedValue = this.resolveValue(dynamicResolvedValue, previousOutputs);
 
                 console.log('field value', fieldValue);
                 console.log('resolved value', resolvedValue);
@@ -225,7 +259,7 @@ export class CaseService {
                     actual: fieldValue,
                     result: isConditionMet,
                 };
-            });
+            }));
 
             const finalResult =
                 logicalOperator === "AND"

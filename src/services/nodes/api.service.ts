@@ -44,6 +44,29 @@ export class APIService {
 
           let replacementValue = foundValue;
           // 👇 If it's a string and not already quoted, add quotes
+          // console.log('foundValue', foundValue);
+          // if (typeof foundValue === 'string' && !/^".*"$/.test(foundValue)) {
+          //   replacementValue = `"${foundValue}"`;
+          // }
+
+          resolved = resolved.replace(match, replacementValue ?? '""');
+        }
+        return resolved;
+      };
+
+      const resolveBodyValue = async (value: any): Promise<any> => {
+        if (typeof value !== 'string') return value;
+        const matches = value.match(/{{(.*?)}}/g);
+        if (!matches) return value;
+
+        let resolved = value;
+        for (const match of matches) {
+          const variableKey = match.replace(/[{}]/g, '').trim();
+          const foundValue = await this.variableService.getVariableValue(`{{${variableKey}}}`, previousOutputs);
+
+          let replacementValue = foundValue;
+          // 👇 If it's a string and not already quoted, add quotes
+          console.log('foundValue', foundValue);
           if (typeof foundValue === 'string' && !/^".*"$/.test(foundValue)) {
             replacementValue = `"${foundValue}"`;
           }
@@ -52,7 +75,6 @@ export class APIService {
         }
         return resolved;
       };
-
 
       // 1️⃣ Build Axios config with resolved values
       const config: AxiosRequestConfig = {
@@ -84,11 +106,9 @@ export class APIService {
       if (!['get', 'head'].includes(method.toLowerCase())) {
         if (component.bodyType === 1 && component.requestContent) {
           // JSON Raw
-          const resolvedBody = await resolveValue(component.requestContent);
-          console.log('resolved body 1', resolvedBody);
+          const resolvedBody = await resolveBodyValue(component.requestContent);
           try {
             config.data = JSON.parse(resolvedBody);
-            console.log('resolved body', resolvedBody);
           } catch {
             config.data = resolvedBody; // fallback
           }
@@ -131,7 +151,7 @@ export class APIService {
       return {
         status: 'success',
         timestamp: new Date().toISOString(),
-        data: response.data,
+        data: {apiResponse: response.data},
       };
     } catch (error: any) {
       console.error('❌ API node error:', error.message || error);

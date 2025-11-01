@@ -3,11 +3,15 @@ import {repository} from '@loopback/repository';
 import {get, HttpErrors, param, post, Request, requestBody, RestBindings} from '@loopback/rest';
 import {IncomingHttpHeaders} from 'http';
 import {WorkflowOutputs} from '../models';
-import {WorkflowInstancesRepository, WorkflowOutputsRepository} from '../repositories';
+import {WorkflowBlueprintRepository, WorkflowInstancesRepository, WorkflowOutputsRepository, WorkflowRepository} from '../repositories';
 import {WebhookService} from '../services/nodes/webhook.service';
 
 export class WorkflowExecutionController {
   constructor(
+    @repository(WorkflowRepository)
+    public workflowRepository: WorkflowRepository,
+    @repository(WorkflowBlueprintRepository)
+    public workflowBlueprintRepository: WorkflowBlueprintRepository,
     @repository(WorkflowInstancesRepository)
     public workflowInstancesRepository: WorkflowInstancesRepository,
     @repository(WorkflowOutputsRepository)
@@ -117,6 +121,77 @@ export class WorkflowExecutionController {
         success: true,
         message: "Access Token retrived successfully.",
         token: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJuYW1lIjoiS2FyYW4iLCJlbWFpbCI6ImthcmFucmFraDE5QGdtYWlsLmNvbSIsInBlcm1pc3Npb25zIjpbInN1cGVyX2FkbWluIl0sInVzZXJUeXBlIjoiYWRtaW4iLCJpYXQiOjE3NjEzNjgzMTYsImV4cCI6MTc2MTM5MzUxNn0.TePnyg7XixbXEAyK816nxJv6JfP58fZbDGMU2NmIE3I"
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // trigger from idp process
+  @post('/workflow/process')
+  async workflowTriggerFromProcess(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              workflowId: {
+                type: 'string',
+              },
+              processInstanceName: {
+                type: 'string',
+              }
+            }
+          }
+        }
+      }
+    })
+    requestBody: {
+      workflowId: string;
+      processInstanceName: string;
+    }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      workFlowId: string;
+      workflowInstanceId: string;
+      webhookId: string;
+    }
+  }> {
+    try {
+      const workflow = await this.workflowRepository.findById(requestBody.workflowId);
+
+      if (!workflow) {
+        throw new HttpErrors.BadRequest('Workflow not found');
+      }
+
+      const createdWorkflowInstance = await this.workflowInstancesRepository.create({
+        workflowInstanceName: `${requestBody.processInstanceName}-${workflow.name}`,
+        workflowInstanceDescription: `workflow instance created for process instance of IDP ${requestBody.processInstanceName}`,
+        workflowId: requestBody.workflowId,
+        isActive: true,
+        isDeleted: false,
+        isInstanceRunning: false,
+      });
+
+      if (workflow.id && createdWorkflowInstance.id) {
+        const workflowBlueprint : any  = await this.workflowBlueprintRepository.findById(workflow.workflowBlueprintId);
+        const blueprint = workflowBlueprint.bluePrint;
+        const component = blueprint[0]?.component;
+        const webhookId = component.webhookId;
+        return {
+          success: true,
+          message: "string",
+          data: {
+            workFlowId: workflow.id,
+            workflowInstanceId: createdWorkflowInstance.id,
+            webhookId: webhookId
+          }
+        }
+      }else{
+        throw new HttpErrors[500]('Internal server error');
       }
     } catch (error) {
       throw error;

@@ -24,41 +24,35 @@ export class VariableService {
         let value = variable.variableValue;
 
         // Check if value is dynamic (enclosed in {{}})
+        // Support dynamic expressions like {{apiResponse[0].email}} or {{data.user.name}}
         const dynamicMatch = typeof value === 'string' && value.match(/^{{(.*?)}}$/);
         if (dynamicMatch) {
-          const path = dynamicMatch[1].trim(); // variable path inside {{}}, e.g., "userId" or "data.user.id"
+          const path = dynamicMatch[1].trim();
 
-          // search previousOutputs for this path
           let foundValue = null;
 
           for (const prev of previousOutputs) {
             if (prev.output && prev.output.data) {
+              try {
+                // Allow access to nested properties and array indices safely
+                const dataContext = {...prev.output.data};
 
-              if (path === "data") {
-                foundValue = prev.output.data; // ✅ direct match
-                break;
-              }
+                // Evaluate the path safely
+                const fn = new Function("data", `return data?.${path}`);
+                const result = fn(dataContext);
 
-              // Support nested paths like 'user.id'
-              const parts = path.split('.');
-              let temp = prev.output.data;
-              for (const part of parts) {
-                if (temp && Object.prototype.hasOwnProperty.call(temp, part)) {
-                  temp = temp[part];
-                } else {
-                  temp = undefined;
+                if (result !== undefined) {
+                  foundValue = result;
                   break;
                 }
-              }
-
-              if (temp !== undefined) {
-                foundValue = temp;
-                break;
+              } catch (err) {
+                // If path is invalid, skip
+                continue;
               }
             }
           }
 
-          value = foundValue ?? null; // if not found, set null
+          value = foundValue ?? null;
         }
 
         resolvedVariables.push({
