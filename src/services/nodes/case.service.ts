@@ -196,6 +196,7 @@ export class CaseService {
                             console.log('here');
                         }
 
+                        console.log('compare', actualDate, expectedDate);
                         switch (cond.condition) {
                             case "valid date":
                                 isConditionMet = actualDate !== null && !isNaN(actualDate.getTime());
