@@ -176,7 +176,20 @@ export class CaseService {
                         break;
 
                     case "date":
-                        const actualDate = fieldValue ? new Date(fieldValue) : null;
+                        // const actualDate = fieldValue ? new Date(fieldValue) : null;
+                        let actualDate = null;
+
+                        if (typeof fieldValue === 'string') {
+                            const lowerValue = fieldValue.trim().toLowerCase();
+
+                            if (lowerValue === 'current') {
+                                actualDate = new Date(); // ✅ Current date/time
+                            } else if (!isNaN(Date.parse(fieldValue))) {
+                                actualDate = new Date(fieldValue); // ✅ Valid date string
+                            }
+                        } else if (fieldValue instanceof Date) {
+                            actualDate = fieldValue; // ✅ Already a Date object
+                        }
                         const expectedDate = resolvedValue ? new Date(resolvedValue) : null;
 
                         switch (cond.condition) {
