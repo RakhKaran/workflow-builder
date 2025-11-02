@@ -182,14 +182,18 @@ export class CaseService {
 
                         if (typeof resolvedValue === 'string') {
                             const lowerValue = resolvedValue.trim().toLowerCase();
-
+                            console.log('lowered value', lowerValue);
                             if (lowerValue === 'current') {
                                 expectedDate = new Date(); // ✅ Current date/time
+                                console.log('expectedDate', expectedDate);
                             } else if (!isNaN(Date.parse(resolvedValue))) {
                                 expectedDate = new Date(resolvedValue); // ✅ Valid date string
+                                console.log('expectedDate final', expectedDate);
+
                             }
                         } else if (resolvedValue instanceof Date) {
                             expectedDate = resolvedValue; // ✅ Already a Date object
+                            console.log('here');
                         }
 
                         switch (cond.condition) {
