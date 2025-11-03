@@ -93,12 +93,27 @@ export class WorkflowExecutionController {
       },
       include: [
         {relation: 'workflowInstances'},
-        {relation: 'nodeOutputs'}
+        // {relation: 'nodeOutputs'}
       ],
       order: ['createdAt desc']
     });
 
     return outputs;
+  }
+
+  @get('/workflow-instances/execution-logs/{outputId}')
+  async workflowInstanceOutputExecutionLogs(
+    @param.path.string('outputId') outputId: string,
+  ): Promise<WorkflowOutputs> {
+    const outputData = await this.workflowOutputsRepository.findById(outputId, {
+      include: [
+        {relation: 'workflowInstances'},
+        {relation: 'nodeOutputs'}
+      ],
+      order: ['createdAt desc']
+    });
+
+    return outputData;
   }
 
   // test-api
@@ -177,7 +192,7 @@ export class WorkflowExecutionController {
       });
 
       if (workflow.id && createdWorkflowInstance.id) {
-        const workflowBlueprint : any  = await this.workflowBlueprintRepository.findById(workflow.workflowBlueprintId);
+        const workflowBlueprint: any = await this.workflowBlueprintRepository.findById(workflow.workflowBlueprintId);
         const blueprint = workflowBlueprint.bluePrint;
         const component = blueprint[0]?.component;
         const webhookId = component.webhookId;
@@ -190,7 +205,7 @@ export class WorkflowExecutionController {
             webhookId: webhookId
           }
         }
-      }else{
+      } else {
         throw new HttpErrors[500]('Internal server error');
       }
     } catch (error) {
