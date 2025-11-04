@@ -20,6 +20,8 @@ import {Main} from './services/nodes/main.service';
 import {NotificationService} from './services/nodes/notification.service';
 import {VariableService} from './services/nodes/variable.service';
 import {WebhookService} from './services/nodes/webhook.service';
+import {TimeService} from './services/nodes/time.service';
+import {AirflowDagService} from './services/nodes/dag-creation.service';
 
 export {ApplicationConfig};
 
@@ -67,6 +69,8 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.APIService').toClass(APIService);
     this.bind('services.VariableService').toClass(VariableService);
     this.bind('services.IteratorService').toClass(IteratorService);
+    this.bind('services.TimeService').toClass(TimeService);
+    this.bind('services.AirflowDagService').toClass(AirflowDagService);
   }
 
   protected configureFileUpload(destination?: string) {

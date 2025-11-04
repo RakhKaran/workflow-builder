@@ -1,4 +1,4 @@
-import { Entity, model, property, belongsTo} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
 import {Workflow} from './workflow.model';
 
 @model()
@@ -38,6 +38,11 @@ export class WorkflowInstances extends Entity {
     required: true
   })
   isInstanceRunning: boolean;
+
+  @property({
+    type: 'boolean',
+  })
+  isScheduled?: boolean;
 
   @property({
     type: 'date',

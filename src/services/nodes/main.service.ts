@@ -4,10 +4,11 @@ import {WorkflowInstancesRepository, WorkflowOutputsRepository} from "../../repo
 import {APIService} from './api.service';
 import {CaseService} from "./case.service";
 import {IngestionService} from "./ingestion.service";
+import {IteratorService} from './iterator.service';
 import {NotificationService} from "./notification.service";
+import {TimeService} from './time.service';
 import {VariableService} from './variable.service';
 import {WebhookService} from './webhook.service';
-import {IteratorService} from './iterator.service';
 
 export class Main {
   constructor(
@@ -29,11 +30,14 @@ export class Main {
     private variableService: VariableService,
     @inject('services.IteratorService')
     private iteratorService: IteratorService,
+    @inject.getter('services.TimeService')
+    private getTimeService: Getter<TimeService>,
   ) { }
 
   // Register available services
   async servicesMapper() {
     const webhookService = await this.getWebhookService();
+    const timeService = await this.getTimeService();
 
     return [
       {nodeType: "ingestion", service: this.ingestionService.ingestion.bind(this.ingestionService)},
@@ -43,6 +47,7 @@ export class Main {
       {nodeType: "api", service: this.apiService.api.bind(this.apiService)},
       {nodeType: "variable", service: this.variableService.setVariables.bind(this.variableService)},
       {nodeType: "iterator", service: this.iteratorService.iterator.bind(this.iteratorService)},
+      {nodeType: "timeTrigger", service: timeService.timeTriggerNode.bind(timeService)},
     ];
   }
 
@@ -168,7 +173,9 @@ export class Main {
 
   async main(outputId: string) {
     try {
+      console.log('outputId', outputId);
       const workflowOutput = await this.workflowOutputsRepository.findById(outputId);
+      console.log('workflowOutput', workflowOutput);
       const currentRunningWorkflowInstance =
         await this.workflowInstancesRepository.findById(workflowOutput.workflowInstancesId, {
           include: [

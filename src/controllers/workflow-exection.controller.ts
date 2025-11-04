@@ -4,6 +4,7 @@ import {get, HttpErrors, param, post, Request, requestBody, RestBindings} from '
 import {IncomingHttpHeaders} from 'http';
 import {WorkflowOutputs} from '../models';
 import {WorkflowBlueprintRepository, WorkflowInstancesRepository, WorkflowOutputsRepository, WorkflowRepository} from '../repositories';
+import {TimeService} from '../services/nodes/time.service';
 import {WebhookService} from '../services/nodes/webhook.service';
 
 export class WorkflowExecutionController {
@@ -18,6 +19,8 @@ export class WorkflowExecutionController {
     public workflowOutputsRepository: WorkflowOutputsRepository,
     @inject('services.WebhookService')
     public webhookService: WebhookService,
+    @inject('services.TimeService')
+    private timeService: TimeService,
   ) { }
 
   normalizeHeaders(headers: IncomingHttpHeaders): Record<string, string> {
@@ -29,6 +32,7 @@ export class WorkflowExecutionController {
     return result;
   }
 
+  // webhook trigger
   @post('/workflow/webhook/{workflowInstanceId}/{webhookId}')
   async workflowWebhook(
     @param.path.string('workflowInstanceId') workflowInstanceId: string,
@@ -83,6 +87,7 @@ export class WorkflowExecutionController {
     }
   }
 
+  // logs by instance Id
   @get('/workflow-instances/logs/{instanceId}')
   async workflowInstanceOutputLogs(
     @param.path.string('instanceId') instanceId: string,
@@ -101,6 +106,7 @@ export class WorkflowExecutionController {
     return outputs;
   }
 
+  // exxecution logs by outputId
   @get('/workflow-instances/execution-logs/{outputId}')
   async workflowInstanceOutputExecutionLogs(
     @param.path.string('outputId') outputId: string,
@@ -114,32 +120,6 @@ export class WorkflowExecutionController {
     });
 
     return outputData;
-  }
-
-  // test-api
-  @get('/test')
-  async testAPI(): Promise<{success: boolean; message: string}> {
-    try {
-      return {
-        success: true,
-        message: "API success"
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  @get('/access-token')
-  async accessToken(): Promise<{success: boolean; message: string; token: string}> {
-    try {
-      return {
-        success: true,
-        message: "Access Token retrived successfully.",
-        token: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJuYW1lIjoiS2FyYW4iLCJlbWFpbCI6ImthcmFucmFraDE5QGdtYWlsLmNvbSIsInBlcm1pc3Npb25zIjpbInN1cGVyX2FkbWluIl0sInVzZXJUeXBlIjoiYWRtaW4iLCJpYXQiOjE3NjEzNjgzMTYsImV4cCI6MTc2MTM5MzUxNn0.TePnyg7XixbXEAyK816nxJv6JfP58fZbDGMU2NmIE3I"
-      }
-    } catch (error) {
-      throw error;
-    }
   }
 
   // trigger from idp process
@@ -212,4 +192,66 @@ export class WorkflowExecutionController {
       throw error;
     }
   }
+
+  // time trigger
+  @post('/workflow/time-trigger')
+  async workflowTimeTrigger(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              workflowInstanceId: {
+                type: 'string'
+              },
+              nodeId: {
+                type: 'string'
+              }
+            }
+          }
+        }
+      }
+    })
+    requestBody: {
+      workflowInstanceId: string;
+      nodeId: string;
+    }
+  ): Promise<{success: boolean; message: string}> {
+    try {
+      const response = await this.timeService.timeTrigger(requestBody.workflowInstanceId, requestBody.nodeId);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // test-apis
+  // ----------------------------------------------------------------------------------------------
+  @get('/test')
+  async testAPI(): Promise<{success: boolean; message: string}> {
+    try {
+      return {
+        success: true,
+        message: "API success"
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @get('/access-token')
+  async accessToken(): Promise<{success: boolean; message: string; token: string}> {
+    try {
+      return {
+        success: true,
+        message: "Access Token retrived successfully.",
+        token: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJuYW1lIjoiS2FyYW4iLCJlbWFpbCI6ImthcmFucmFraDE5QGdtYWlsLmNvbSIsInBlcm1pc3Npb25zIjpbInN1cGVyX2FkbWluIl0sInVzZXJUeXBlIjoiYWRtaW4iLCJpYXQiOjE3NjEzNjgzMTYsImV4cCI6MTc2MTM5MzUxNn0.TePnyg7XixbXEAyK816nxJv6JfP58fZbDGMU2NmIE3I"
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
 }

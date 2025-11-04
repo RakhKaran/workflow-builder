@@ -1,4 +1,6 @@
+import * as dotenv from 'dotenv';
 import {ApplicationConfig, WorkflowBuilderApplication} from './application';
+dotenv.config();
 
 export * from './application';
 
@@ -11,6 +13,8 @@ export async function main(options: ApplicationConfig = {}) {
   console.log(`Server is running at ${url}`);
   console.log(`Try ${url}/ping`);
 
+  console.log('main url', process.env.API_ENDPOINT);
+
   return app;
 }
 
@@ -19,7 +23,7 @@ if (require.main === module) {
   const config = {
     rest: {
       port: +(process.env.PORT ?? 3058),
-      host: process.env.HOST ?? '127.0.0.1',
+      host: process.env.HOST ?? '0.0.0.0',
       // The `gracePeriodForClose` provides a graceful close for http/https
       // servers with keep-alive clients. The default value is `Infinity`
       // (don't force-close). If you want to immediately destroy all sockets
