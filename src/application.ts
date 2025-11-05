@@ -11,17 +11,18 @@ import multer from 'multer';
 import path from 'path';
 import {EmailManagerBindings, FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY} from './keys';
 import {MySequence} from './sequence';
+import {AgendaService} from './services/agenda.service';
 import {EmailService} from './services/email.service';
 import {APIService} from './services/nodes/api.service';
 import {CaseService} from './services/nodes/case.service';
+import {AirflowDagService} from './services/nodes/dag-creation.service';
 import {IngestionService} from './services/nodes/ingestion.service';
 import {IteratorService} from './services/nodes/iterator.service';
 import {Main} from './services/nodes/main.service';
 import {NotificationService} from './services/nodes/notification.service';
+import {TimeService} from './services/nodes/time.service';
 import {VariableService} from './services/nodes/variable.service';
 import {WebhookService} from './services/nodes/webhook.service';
-import {TimeService} from './services/nodes/time.service';
-import {AirflowDagService} from './services/nodes/dag-creation.service';
 
 export {ApplicationConfig};
 
@@ -71,6 +72,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.IteratorService').toClass(IteratorService);
     this.bind('services.TimeService').toClass(TimeService);
     this.bind('services.AirflowDagService').toClass(AirflowDagService);
+    this.bind('services.AgendaService').toClass(AgendaService);
   }
 
   protected configureFileUpload(destination?: string) {

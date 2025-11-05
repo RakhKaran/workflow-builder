@@ -31,6 +31,8 @@ async function findTimeTriggerWorkflows(app: WorkflowBuilderApplication) {
         };
     })[];
 
+    console.log('workflowInstances length', workflowInstances.length);
+
     const workflowInstancesWithTimeTrigger: {
         nodeId: string;
         workflowInstanceId: string;
@@ -41,11 +43,13 @@ async function findTimeTriggerWorkflows(app: WorkflowBuilderApplication) {
     for (const instance of workflowInstances) {
         const nodes: any[] = instance.workflow?.workflowBlueprint?.nodes ?? [];
 
+        console.log('nodes', nodes.length);
         if (nodes.length > 0 && nodes[0].type === "timeTrigger" && instance.id) {
+            console.log('entered');
             const nodeConfig = (instance.workflow?.workflowBlueprint?.bluePrint?.find(
                 (node: any) => node.id === nodes[0].id
             ) as any)?.component;
-
+            console.log('nodeConfig', nodeConfig);
             if (nodeConfig) {
                 workflowInstancesWithTimeTrigger.push({
                     nodeId: nodes[0].id,
@@ -75,8 +79,9 @@ async function main() {
     try {
         const airflowDagService = await app.get<AirflowDagService>("services.AirflowDagService");
         const instances = await findTimeTriggerWorkflows(app);
-
+        console.log('instances length', instances.length);
         for (const instance of instances) {
+            console.log('instance', instance);
             const dagFile = await airflowDagService.createDagFile({
                 dagName: `${instance.workflowInstanceName}_${instance.workflowInstanceId}`,
                 taskId: instance.workflowInstanceName,

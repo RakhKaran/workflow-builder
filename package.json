@@ -57,6 +57,7 @@
     "@loopback/rest": "^15.0.3",
     "@loopback/rest-explorer": "^8.0.3",
     "@loopback/service-proxy": "^8.0.2",
+    "agenda": "^5.0.0",
     "axios": "^1.12.2",
     "dot-env": "^0.0.1",
     "dotenv": "^17.2.3",

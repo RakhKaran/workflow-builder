@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import {ApplicationConfig, WorkflowBuilderApplication} from './application';
+// import { agenda } from './services/agenda.service';
 dotenv.config();
 
 export * from './application';
@@ -8,10 +9,12 @@ export async function main(options: ApplicationConfig = {}) {
   const app = new WorkflowBuilderApplication(options);
   await app.boot();
   await app.start();
+  // await agenda.start();
 
   const url = app.restServer.url;
   console.log(`Server is running at ${url}`);
   console.log(`Try ${url}/ping`);
+  console.log('agenda started');
 
   console.log('main url', process.env.API_ENDPOINT);
 

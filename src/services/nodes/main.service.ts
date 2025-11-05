@@ -173,9 +173,7 @@ export class Main {
 
   async main(outputId: string) {
     try {
-      console.log('outputId', outputId);
       const workflowOutput = await this.workflowOutputsRepository.findById(outputId);
-      console.log('workflowOutput', workflowOutput);
       const currentRunningWorkflowInstance =
         await this.workflowInstancesRepository.findById(workflowOutput.workflowInstancesId, {
           include: [
@@ -252,5 +250,46 @@ export class Main {
       await this.workflowOutputsRepository.updateById(outputId, {status: 2});
       throw error;
     }
+  }
+
+  async executeFromNode(nodeId: string, blueprint: object[], nodes: object[], edges: object[], outputData: object[], instance: object, outputId: string) {
+    const node: any = nodes.find((n: any) => n.id === nodeId);
+    if (!node) return;
+
+    if (node.type === 'decision') {
+      await this.executeDecisionNode(node, blueprint, nodes, outputData, instance, outputId);
+    } else {
+      await this.executeNode(node, blueprint, nodes, outputData, instance, outputId);
+    }
+
+    // Check if it’s a wait/time node
+    if (node.type === 'wait' || node.type === 'timeTrigger') {
+      console.log(`🕒 Workflow paused at ${node.type} node`);
+      return; // stop further execution
+    }
+
+    // Continue to next connected nodes
+    const nextEdges = edges.filter((e: any) => e.source === node.id);
+    for (const edge of nextEdges as any[]) {
+      await this.executeFromNode(edge.target, blueprint, nodes, edges, outputData, instance, outputId);
+    }
+
+  }
+
+  async resumeWorkflow(outputId: string, resumeNodeId: string, previousOutputs: any[]) {
+    const workflowOutput = await this.workflowOutputsRepository.findById(outputId);
+    const instance: any = await this.workflowInstancesRepository.findById(workflowOutput.workflowInstancesId, {
+      include: [{relation: "workflow", scope: {include: [{relation: "workflowBlueprint"}]}}],
+    });
+
+    const blueprint = instance.workflow?.workflowBlueprint;
+    const nodes = blueprint?.nodes ?? [];
+    const edges = blueprint?.edges ?? [];
+    const outputData = [...previousOutputs];
+
+    await this.executeFromNode(resumeNodeId, blueprint, nodes, edges, outputData, instance, outputId);
+
+    await this.workflowOutputsRepository.updateById(outputId, {status: 1});
+    console.log("✅ Workflow resumed and continued successfully");
   }
 }
