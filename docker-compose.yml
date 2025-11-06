@@ -9,7 +9,7 @@ services:
       - ./src/dags:/opt/airflow/dags
       - ./dist:/opt/airflow/dist
       - ./package.json:/opt/airflow/package.json
-      - workflow_db:/opt/airflow # persistent DB storage (directory, not file)
+      - workflow_db:/opt/airflow
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
@@ -25,11 +25,13 @@ services:
       - ./src/dags:/opt/airflow/dags
       - ./dist:/opt/airflow/dist
       - ./package.json:/opt/airflow/package.json
-      - workflow_db:/opt/airflow # same volume as webserver
+      - workflow_db:/opt/airflow
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
     command: scheduler
+    depends_on:
+      - airflow-apiserver
 
   lb4-api:
     build:

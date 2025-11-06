@@ -229,12 +229,16 @@ export class WorkflowExecutionController {
   // test-apis
   // ----------------------------------------------------------------------------------------------
   @get('/test')
-  async testAPI(): Promise<{success: boolean; message: string}> {
+  async testAPI(): Promise<{success: boolean; message: string; randomId: number}> {
     try {
+      // Generate a random integer between 1 and 20
+      const randomId = Math.floor(Math.random() * 20) + 1;
+
       return {
         success: true,
-        message: "API success"
-      }
+        message: `API success. Generated random ID: ${randomId}`,
+        randomId
+      };
     } catch (error) {
       throw error;
     }
