@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import {ApplicationConfig, WorkflowBuilderApplication} from './application';
-// import { agenda } from './services/agenda.service';
+import {createAgendaConnection} from './services/agenda/agenda-connection.service';
+import {Main} from './services/nodes/main.service';
 dotenv.config();
 
 export * from './application';
@@ -8,8 +9,12 @@ export * from './application';
 export async function main(options: ApplicationConfig = {}) {
   const app = new WorkflowBuilderApplication(options);
   await app.boot();
+
+  const mainService = await app.get<Main>('services.Main');
+
+  await createAgendaConnection(mainService);
+
   await app.start();
-  // await agenda.start();
 
   const url = app.restServer.url;
   console.log(`Server is running at ${url}`);

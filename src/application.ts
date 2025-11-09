@@ -11,9 +11,11 @@ import multer from 'multer';
 import path from 'path';
 import {EmailManagerBindings, FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY} from './keys';
 import {MySequence} from './sequence';
-import {AgendaService} from './services/agenda.service';
+import {AgendaService} from './services/agenda/agenda.service';
+import {Connections} from './services/connections.service';
 import {CRMHubSpot} from './services/crm/crm-hubspot.service';
 import {EmailService} from './services/email.service';
+import {MCPService} from './services/mcp.service';
 import {APIService} from './services/nodes/api.service';
 import {CaseService} from './services/nodes/case.service';
 import {AirflowDagService} from './services/nodes/dag-creation.service';
@@ -25,8 +27,6 @@ import {TimeService} from './services/nodes/time.service';
 import {VariableService} from './services/nodes/variable.service';
 import {WaitService} from './services/nodes/wait.service';
 import {WebhookService} from './services/nodes/webhook.service';
-import {MCPService} from './services/mcp.service';
-import {Connections} from './services/connections.service';
 
 export {ApplicationConfig};
 

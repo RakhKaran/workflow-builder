@@ -1,7 +1,7 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {NodeOutputRepository} from '../../repositories';
-import {AgendaService} from '../agenda.service';
+import {AgendaService} from '../agenda/agenda.service';
 
 export class WaitService {
   constructor(
@@ -9,7 +9,7 @@ export class WaitService {
     private nodeOutputRepository: NodeOutputRepository,
     @inject('services.AgendaService')
     private agendaService: AgendaService,
-  ) {}
+  ) { }
 
   async waitService(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
     try {
