@@ -255,7 +255,7 @@ export class Main {
           results: outputData,
         };
 
-        await this.workflowOutputsRepository.updateById(outputId, {status: 2});
+        await this.workflowOutputsRepository.updateById(outputId, {status: 3});
       } else {
         executionResult = {
           workflowInstanceId: currentRunningWorkflowInstance.id,
