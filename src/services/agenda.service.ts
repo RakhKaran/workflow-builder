@@ -1,15 +1,18 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import Agenda from 'agenda';
-import {Main} from './nodes/main.service'; // adjust the import path as needed
+import {Main} from './nodes/main.service';
 
 @lifeCycleObserver('agenda')
 export class AgendaService implements LifeCycleObserver {
   private agenda: Agenda;
+  private isReady = false;
 
   constructor(
     @inject('services.Main')
     private mainService: Main,
-  ) {
+  ) { }
+
+  async init(): Promise<void> {
     const mongoConnectionString =
       process.env.MONGO_CONNECTION_STRING ||
       'mongodb+srv://karanrakh19:Dxafj3dUABszmb83@todolist.ui3hm4s.mongodb.net/workflow?retryWrites=true&w=majority&appName=todolist';
@@ -20,7 +23,7 @@ export class AgendaService implements LifeCycleObserver {
       maxConcurrency: 20,
     });
 
-    // ✅ Define job
+    // ✅ Define job once
     this.agenda.define('resume-workflow', async (job: any) => {
       const {workflowId, nodeId, previousOutputs, outputDataId} = job.attrs.data;
 
@@ -37,24 +40,24 @@ export class AgendaService implements LifeCycleObserver {
       }
     });
 
-    this.agenda.on('ready', async () => {
-      await this.agenda.start();
-      console.log('✅ Agenda connected and started');
-    });
-
-    this.agenda.on('error', (err) => {
-      console.error('❌ Agenda connection error:', err);
-    });
+    // ✅ Proper start (await ensures Mongo connected)
+    await this.agenda.start();
+    this.isReady = true;
+    console.log('✅ Agenda connected and started');
   }
 
-  // 🧹 Optional — gracefully stop agenda when app stops
   async stop() {
-    await this.agenda.stop();
-    console.log('🛑 Agenda stopped');
+    if (this.agenda) {
+      await this.agenda.stop();
+      console.log('🛑 Agenda stopped');
+    }
   }
 
-  // ✅ expose schedule method for other services to call
   async scheduleJob(resumeAt: Date, data: any) {
+    if (!this.isReady || !this.agenda._collection) {
+      console.warn('⚠️ Agenda not ready yet, skipping schedule');
+      return;
+    }
     await this.agenda.schedule(resumeAt, 'resume-workflow', data);
   }
 }
