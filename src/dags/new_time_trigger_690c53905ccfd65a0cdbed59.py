@@ -11,14 +11,14 @@ default_args = {
 }
 
 with DAG(
-    dag_id='email_otp_spam_instance_690c3fba5ccfd65a0cdbed56',
+    dag_id='new_time_trigger_690c53905ccfd65a0cdbed59',
     default_args=default_args,
     schedule="*/2 * * * *",
     catchup=False,
 ) as dag:
     task1 = BashOperator(
-        task_id='email_otp_spam_instance',
-        bash_command='node /opt/airflow/dist/scripts/run-workflow.js 690c3fba5ccfd65a0cdbed56 2'
+        task_id='new_time_trigger',
+        bash_command='node /opt/airflow/dist/scripts/run-workflow.js 690c53905ccfd65a0cdbed59 2'
     )
 
     task1

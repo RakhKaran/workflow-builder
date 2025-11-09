@@ -33,7 +33,7 @@ export class WorkflowOutputs extends Entity {
   isDeleted: boolean;
 
   @property({
-    type: 'number',   // 0 => running 1 => completed 2 => failed
+    type: 'number',   // 0 => running 1 => completed 2 => failed 3 => waiting
     required: true,
   })
   status: number;

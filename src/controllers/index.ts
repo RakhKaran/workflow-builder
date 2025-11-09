@@ -5,3 +5,6 @@ export * from './workflow-instances.controller';
 export * from './workflow-exection.controller';
 export * from './workflow-outputs-workflow-instances.controller';
 export * from './workflow-outputs-node-output.controller';
+export * from './crm.controller';
+export * from './workflow-connections-workflow.controller';
+export * from './workflow-connections.controller';

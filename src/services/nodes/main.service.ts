@@ -9,6 +9,7 @@ import {NotificationService} from "./notification.service";
 import {TimeService} from './time.service';
 import {VariableService} from './variable.service';
 import {WebhookService} from './webhook.service';
+import {WaitService} from './wait.service';
 
 export class Main {
   constructor(
@@ -32,13 +33,15 @@ export class Main {
     private iteratorService: IteratorService,
     @inject.getter('services.TimeService')
     private getTimeService: Getter<TimeService>,
+    @inject.getter('services.WaitService')
+    private getWaitService: Getter<WaitService>,
   ) { }
 
   // Register available services
   async servicesMapper() {
     const webhookService = await this.getWebhookService();
     const timeService = await this.getTimeService();
-
+    const waitService = await this.getWaitService();
     return [
       {nodeType: "ingestion", service: this.ingestionService.ingestion.bind(this.ingestionService)},
       {nodeType: "notification", service: this.notificationService.notification.bind(this.notificationService)},
@@ -48,6 +51,7 @@ export class Main {
       {nodeType: "variable", service: this.variableService.setVariables.bind(this.variableService)},
       {nodeType: "iterator", service: this.iteratorService.iterator.bind(this.iteratorService)},
       {nodeType: "timeTrigger", service: timeService.timeTriggerNode.bind(timeService)},
+      {nodeType: "waitTrigger", service: waitService.waitService.bind(waitService)},
     ];
   }
 
@@ -191,7 +195,7 @@ export class Main {
       }
 
       // Run each workflow instance sequentially
-      let executionResult = {};
+      let executionResult: any = {};
       const workflow = (currentRunningWorkflowInstance as any).workflow;
       const workflowBlueprint = workflow?.workflowBlueprint;
 
@@ -203,6 +207,7 @@ export class Main {
         error?: string;
       }> = [];
 
+      let waitNodeEncountered = false;
       // Sequential execution of nodes
       for (const node of nodesData) {
         try {
@@ -215,6 +220,7 @@ export class Main {
               currentRunningWorkflowInstance,
               outputId
             );
+            break;
           } else {
             await this.executeNode(
               node,
@@ -224,6 +230,12 @@ export class Main {
               currentRunningWorkflowInstance,
               outputId
             );
+
+            if (node.type === 'waitTrigger') {
+              console.log('wait node encountered');
+              waitNodeEncountered = true;
+              break;
+            }
           }
         } catch (err: any) {
           outputData.push({
@@ -236,13 +248,23 @@ export class Main {
         }
       }
 
-      executionResult = {
-        workflowInstanceId: currentRunningWorkflowInstance.id,
-        status: outputData.some((n) => n.error) ? "failed" : "completed",
-        results: outputData,
-      };
+      if (waitNodeEncountered) {
+        executionResult = {
+          workflowInstanceId: currentRunningWorkflowInstance.id,
+          status: outputData.some((n) => n.error) ? "failed" : "completed",
+          results: outputData,
+        };
 
-      await this.workflowOutputsRepository.updateById(outputId, {status: 1});
+        await this.workflowOutputsRepository.updateById(outputId, {status: executionResult.status === "completed" ? 1 : 0});
+      } else {
+        executionResult = {
+          workflowInstanceId: currentRunningWorkflowInstance.id,
+          status: outputData.some((n) => n.error) ? "failed" : "completed",
+          results: outputData,
+        };
+
+        await this.workflowOutputsRepository.updateById(outputId, {status: executionResult.status === "completed" ? 1 : 0});
+      }
       return {
         message: "Workflow execution finished",
       };
@@ -273,7 +295,6 @@ export class Main {
     for (const edge of nextEdges as any[]) {
       await this.executeFromNode(edge.target, blueprint, nodes, edges, outputData, instance, outputId);
     }
-
   }
 
   async resumeWorkflow(outputId: string, resumeNodeId: string, previousOutputs: any[]) {
@@ -287,7 +308,9 @@ export class Main {
     const edges = blueprint?.edges ?? [];
     const outputData = [...previousOutputs];
 
-    await this.executeFromNode(resumeNodeId, blueprint, nodes, edges, outputData, instance, outputId);
+    const nextNodeId = edges.find((edge: any) => edge.source === resumeNodeId).target;
+
+    await this.executeFromNode(nextNodeId, blueprint, nodes, edges, outputData, instance, outputId);
 
     await this.workflowOutputsRepository.updateById(outputId, {status: 1});
     console.log("✅ Workflow resumed and continued successfully");

@@ -7,16 +7,14 @@ export class WaitService {
   constructor(
     @repository(NodeOutputRepository)
     private nodeOutputRepository: NodeOutputRepository,
-
     @inject('services.AgendaService')
     private agendaService: AgendaService,
-  ) { }
+  ) {}
 
   async waitService(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
     try {
       const component = data.component || null;
       const scheduleResponse = await this.schedule(data, component, previousOutputs, outputDataId, workflowInstanceData.workflowId);
-
       await this.nodeOutputRepository.create({
         workflowOutputsId: outputDataId,
         status: 1,

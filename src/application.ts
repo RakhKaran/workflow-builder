@@ -12,6 +12,7 @@ import path from 'path';
 import {EmailManagerBindings, FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY} from './keys';
 import {MySequence} from './sequence';
 import {AgendaService} from './services/agenda.service';
+import {CRMHubSpot} from './services/crm/crm-hubspot.service';
 import {EmailService} from './services/email.service';
 import {APIService} from './services/nodes/api.service';
 import {CaseService} from './services/nodes/case.service';
@@ -22,7 +23,10 @@ import {Main} from './services/nodes/main.service';
 import {NotificationService} from './services/nodes/notification.service';
 import {TimeService} from './services/nodes/time.service';
 import {VariableService} from './services/nodes/variable.service';
+import {WaitService} from './services/nodes/wait.service';
 import {WebhookService} from './services/nodes/webhook.service';
+import {MCPService} from './services/mcp.service';
+import {Connections} from './services/connections.service';
 
 export {ApplicationConfig};
 
@@ -73,6 +77,10 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.TimeService').toClass(TimeService);
     this.bind('services.AirflowDagService').toClass(AirflowDagService);
     this.bind('services.AgendaService').toClass(AgendaService);
+    this.bind('services.WaitService').toClass(WaitService);
+    this.bind('services.CRMHubSpot').toClass(CRMHubSpot);
+    this.bind('services.MCPService').toClass(MCPService);
+    this.bind('services.Connections').toClass(Connections);
   }
 
   protected configureFileUpload(destination?: string) {

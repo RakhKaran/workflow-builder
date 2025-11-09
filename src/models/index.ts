@@ -5,3 +5,4 @@ export * from './process-workflow-output.model';
 export * from './workflow-outputs.model';
 export * from './node-output.model';
 export * from './wait-nodes.model';
+export * from './workflow-connections.model';

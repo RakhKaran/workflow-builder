@@ -5,3 +5,4 @@ export * from './process-workflow-output.repository';
 export * from './workflow-outputs.repository';
 export * from './node-output.repository';
 export * from './wait-nodes.repository';
+export * from './workflow-connections.repository';
