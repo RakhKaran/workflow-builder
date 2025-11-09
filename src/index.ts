@@ -1,7 +1,6 @@
 import * as dotenv from 'dotenv';
 import {ApplicationConfig, WorkflowBuilderApplication} from './application';
 import {createAgendaConnection} from './services/agenda/agenda-connection.service';
-import {Main} from './services/nodes/main.service';
 dotenv.config();
 
 export * from './application';
@@ -10,9 +9,7 @@ export async function main(options: ApplicationConfig = {}) {
   const app = new WorkflowBuilderApplication(options);
   await app.boot();
 
-  const mainService = await app.get<Main>('services.Main');
-
-  await createAgendaConnection(mainService);
+  await createAgendaConnection();
 
   await app.start();
 

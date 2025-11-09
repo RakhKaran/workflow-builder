@@ -37,6 +37,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     super(options);
 
     // Set up the custom sequence
+    this.lifeCycleObserver(AgendaService);
     this.sequence(MySequence);
     this.setUpBinding();
 

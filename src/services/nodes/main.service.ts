@@ -8,8 +8,8 @@ import {IteratorService} from './iterator.service';
 import {NotificationService} from "./notification.service";
 import {TimeService} from './time.service';
 import {VariableService} from './variable.service';
-import {WebhookService} from './webhook.service';
 import {WaitService} from './wait.service';
+import {WebhookService} from './webhook.service';
 
 export class Main {
   constructor(
@@ -255,7 +255,7 @@ export class Main {
           results: outputData,
         };
 
-        await this.workflowOutputsRepository.updateById(outputId, {status: executionResult.status === "completed" ? 1 : 0});
+        await this.workflowOutputsRepository.updateById(outputId, {status: 2});
       } else {
         executionResult = {
           workflowInstanceId: currentRunningWorkflowInstance.id,
@@ -309,6 +309,8 @@ export class Main {
     const outputData = [...previousOutputs];
 
     const nextNodeId = edges.find((edge: any) => edge.source === resumeNodeId).target;
+
+    console.log('flow restarted', nextNodeId);
 
     await this.executeFromNode(nextNodeId, blueprint, nodes, edges, outputData, instance, outputId);
 
