@@ -33,6 +33,22 @@ services:
     depends_on:
       - airflow-apiserver
 
+  airflow-triggerer:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    volumes:
+      - ./src/dags:/opt/airflow/dags
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
+      - workflow_db:/opt/airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    command: triggerer
+    depends_on:
+      - airflow-scheduler
+
   lb4-api:
     build:
       context: .
