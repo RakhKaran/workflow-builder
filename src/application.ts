@@ -28,6 +28,8 @@ import {VariableService} from './services/nodes/variable.service';
 import {WaitService} from './services/nodes/wait.service';
 import {WebhookService} from './services/nodes/webhook.service';
 import {CRMService} from './services/nodes/crm.service';
+import {AuthenticationComponent, registerAuthenticationStrategy} from '@loopback/authentication';
+import {JWTStrategy} from './authentication-strategy/jwt-strategy';
 
 export {ApplicationConfig};
 
@@ -41,6 +43,9 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.lifeCycleObserver(AgendaService);
     this.sequence(MySequence);
     this.setUpBinding();
+
+    this.component(AuthenticationComponent);
+    registerAuthenticationStrategy(this, JWTStrategy);
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
