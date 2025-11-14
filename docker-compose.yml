@@ -15,7 +15,7 @@ services:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
     command: api-server
     ports:
-      - "8080:8080"
+      - "9090:8080"
 
   airflow-scheduler:
     build:
