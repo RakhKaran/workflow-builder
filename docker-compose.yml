@@ -90,42 +90,6 @@ services:
       - ./src/dags:/opt/airflow/dags
 
   # ---------------------------------------------------------
-  # Worker (required for LocalExecutor)
-  # ---------------------------------------------------------
-  airflow-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.airflow
-    depends_on:
-      airflow-init:
-        condition: service_completed_successfully
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
-    command: worker
-    volumes:
-      - ./src/dags:/opt/airflow/dags
-
-  # ---------------------------------------------------------
-  # Triggerer
-  # ---------------------------------------------------------
-  airflow-triggerer:
-    build:
-      context: .
-      dockerfile: Dockerfile.airflow
-    depends_on:
-      airflow-init:
-        condition: service_completed_successfully
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
-    command: triggerer
-    volumes:
-      - ./src/dags:/opt/airflow/dags
-
-  # ---------------------------------------------------------
   # DAG Processor
   # ---------------------------------------------------------
   airflow-dag-processor:
