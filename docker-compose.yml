@@ -70,7 +70,7 @@ services:
       - ./src/dags:/opt/airflow/dags
     command: webserver
     ports:
-      - "8080:8080"
+      - "8082:8080"
 
   airflow-scheduler:
     build:
