@@ -40,6 +40,7 @@ services:
 
       # Logging config: use local logs (no remote log server)
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: bash -c "airflow db migrate"
     volumes:
       - ./src/dags:/opt/airflow/dags
