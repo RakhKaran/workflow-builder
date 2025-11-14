@@ -64,6 +64,7 @@ services:
 
       # Ensure API server reads logs from shared volume (no log server)
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: api-server
     ports:
       - "9090:8080"   # UI + API
@@ -83,6 +84,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: scheduler
     volumes:
       - ./src/dags:/opt/airflow/dags
@@ -100,6 +102,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: dag-processor
     volumes:
       - ./src/dags:/opt/airflow/dags
