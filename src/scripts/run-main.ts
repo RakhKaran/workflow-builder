@@ -5,6 +5,7 @@ import {WorkflowBuilderApplication} from "../application";
 import {Workflow, WorkflowBlueprint, WorkflowInstances} from "../models";
 import {WorkflowInstancesRepository} from "../repositories";
 import {AirflowDagService} from "../services/nodes/dag-creation.service";
+import {createAgendaConnection} from '../services/agenda/agenda-connection.service';
 
 async function findTimeTriggerWorkflows(app: WorkflowBuilderApplication) {
     const repo = await app.getRepository(WorkflowInstancesRepository);
@@ -74,6 +75,7 @@ async function main() {
 
     const app = new WorkflowBuilderApplication(config);
     await app.boot();
+    await createAgendaConnection();
     await app.start();
 
     try {
