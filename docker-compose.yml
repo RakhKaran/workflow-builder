@@ -13,9 +13,12 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    command: api-server
+
+    # IMPORTANT FIX:
+    command: api --port 8793
+
     ports:
-      - "9090:8080"
+      - "9090:8793"
 
   airflow-scheduler:
     build:
