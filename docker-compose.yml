@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,8 +29,8 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
 
-      # try to auto-create admin user when supported
       _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: "admin"
       _AIRFLOW_WWW_USER_PASSWORD: "admin"
@@ -38,9 +38,6 @@ services:
       _AIRFLOW_WWW_USER_LASTNAME: "User"
       _AIRFLOW_WWW_USER_EMAIL: "admin@test.com"
 
-      # Logging config: use local logs (no remote log server)
-      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
-      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: bash -c "airflow db migrate"
     volumes:
       - ./src/dags:/opt/airflow/dags
@@ -59,16 +56,12 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
-
-      # External URL for UI (optional - change to your server IP / host if needed)
       AIRFLOW__WEBSERVER__BASE_URL: "http://31.97.224.212:9090"
-
-      # Ensure API server reads logs from shared volume (no log server)
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
-      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
+
     command: api-server
     ports:
-      - "9090:8080" # UI + API
+      - "9090:8080"
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
@@ -85,7 +78,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
-      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
+
     command: scheduler
     volumes:
       - ./src/dags:/opt/airflow/dags
@@ -103,7 +96,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
-      AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
+
     command: dag-processor
     volumes:
       - ./src/dags:/opt/airflow/dags
