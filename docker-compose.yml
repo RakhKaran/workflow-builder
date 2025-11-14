@@ -2,9 +2,6 @@ version: "3.8"
 
 services:
 
-  # ---------------------------------------------------------
-  # PostgreSQL
-  # ---------------------------------------------------------
   postgres:
     image: postgres:13
     environment:
@@ -14,14 +11,11 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ---------------------------------------------------------
-  # Airflow DB Migration (runs once)
-  # ---------------------------------------------------------
   airflow-init:
     build:
       context: .
@@ -31,27 +25,23 @@ services:
         condition: service_healthy
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="     # real Fernet key
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
-
-      # Auto admin user
+      # must be identical across components that validate tokens
+      AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"                 # <-- important (name)
+      # auto create admin (Airflow 3.x)
       _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: "admin"
       _AIRFLOW_WWW_USER_PASSWORD: "admin"
       _AIRFLOW_WWW_USER_FIRSTNAME: "Admin"
       _AIRFLOW_WWW_USER_LASTNAME: "User"
       _AIRFLOW_WWW_USER_EMAIL: "admin@test.com"
-
     command: bash -c "airflow db migrate"
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
 
-  # ---------------------------------------------------------
-  # Airflow API Server (UI + REST API)
-  # ---------------------------------------------------------
   airflow-apiserver:
     build:
       context: .
@@ -59,32 +49,24 @@ services:
     depends_on:
       airflow-init:
         condition: service_completed_successfully
-
     ports:
-      - "9090:8080"
-
+      - "9090:8080"   # UI/API
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
-      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
+      AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"                     # same secret
+      AIRFLOW__WEBSERVER__BASE_URL: "http://31.97.224.212:9090"                 # your public UI URL
 
-      # UI address
-      AIRFLOW__WEBSERVER__BASE_URL: "http://31.97.224.212:9090"
-
-      # REQUIRED LOG SETTINGS (Airflow 3.x)
+      # Logging: apiserver must know where scheduler exposes the log server
       AIRFLOW__LOGGING__WORKER_LOG_SERVER_ENABLED: "True"
-      AIRFLOW__LOGGING__WORKER_LOG_SERVER_HOSTNAME: "airflow-scheduler"
+      AIRFLOW__LOGGING__WORKER_LOG_SERVER_HOST: "airflow-scheduler"             # must be resolvable service name
       AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT: "8793"
-      AIRFLOW__LOGGING__WORKER_LOG_SERVER_ADDR: "http://airflow-scheduler:8793"
-
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: "socket.gethostname"
     command: api-server
     volumes:
       - ./src/dags:/opt/airflow/dags
 
-  # ---------------------------------------------------------
-  # Airflow Scheduler + Log Server
-  # ---------------------------------------------------------
   airflow-scheduler:
     build:
       context: .
@@ -92,28 +74,20 @@ services:
     depends_on:
       airflow-init:
         condition: service_completed_successfully
-
     ports:
-      - "8793:8793"
-
+      - "8793:8793"   # expose log server port so apiserver can fetch logs
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
-
-      # Run the log server here (Airflow 3.x)
       AIRFLOW__LOGGING__WORKER_LOG_SERVER_ENABLED: "True"
-      AIRFLOW__LOGGING__WORKER_LOG_SERVER_HOSTNAME: "airflow-scheduler"
+      AIRFLOW__LOGGING__WORKER_LOG_SERVER_HOST: "airflow-scheduler"
       AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT: "8793"
-      AIRFLOW__LOGGING__WORKER_LOG_SERVER_ADDR: "http://airflow-scheduler:8793"
-
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: "socket.gethostname"
     command: scheduler
     volumes:
       - ./src/dags:/opt/airflow/dags
 
-  # ---------------------------------------------------------
-  # DAG Processor (Airflow 3.x)
-  # ---------------------------------------------------------
   airflow-dag-processor:
     build:
       context: .
@@ -129,9 +103,6 @@ services:
     volumes:
       - ./src/dags:/opt/airflow/dags
 
-  # ---------------------------------------------------------
-  # LoopBack 4 API
-  # ---------------------------------------------------------
   lb4-api:
     build:
       context: .
