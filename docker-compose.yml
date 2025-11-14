@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "REPLACE_WITH_REAL_FERNET_KEY"
       AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"
-    command: ["bash", "-c", "airflow db init && airflow users create -u admin -p admin -r Admin -e admin@test.com -f admin -l admin"]
+      command: [ "bash", "-c", "airflow db migrate && airflow users create -u admin -p admin -r Admin -e admin@test.com -f admin -l admin" ]
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
