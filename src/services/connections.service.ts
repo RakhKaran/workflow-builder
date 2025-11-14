@@ -40,4 +40,25 @@ export class Connections {
       throw error;
     }
   }
+
+  // get connection...
+  async getConnection(connectionId: string): Promise<WorkflowConnections> {
+    try {
+      const connection = await this.workflowConnectionsRepository.findById(connectionId);
+      return connection;
+    } catch (error) {
+      console.log('Error while fetching connection: ', error);
+      throw error;
+    }
+  }
+
+  // update connection...
+  async updateConnection(connectionId: string, updatedData: Partial<WorkflowConnections>) {
+    try {
+      await this.workflowConnectionsRepository.updateById(connectionId, updatedData);
+    } catch (error) {
+      console.log('Error while updating connection: ', error);
+      throw error;
+    }
+  }
 }

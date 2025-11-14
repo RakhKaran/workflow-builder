@@ -3,6 +3,7 @@ import {repository} from "@loopback/repository";
 import {WorkflowInstancesRepository, WorkflowOutputsRepository} from "../../repositories";
 import {APIService} from './api.service';
 import {CaseService} from "./case.service";
+import {CRMService} from './crm.service';
 import {IngestionService} from "./ingestion.service";
 import {IteratorService} from './iterator.service';
 import {NotificationService} from "./notification.service";
@@ -35,6 +36,8 @@ export class Main {
     private getTimeService: Getter<TimeService>,
     @inject.getter('services.WaitService')
     private getWaitService: Getter<WaitService>,
+    @inject('services.CRMService')
+    private crmService: CRMService,
   ) { }
 
   // Register available services
@@ -52,6 +55,7 @@ export class Main {
       {nodeType: "iterator", service: this.iteratorService.iterator.bind(this.iteratorService)},
       {nodeType: "timeTrigger", service: timeService.timeTriggerNode.bind(timeService)},
       {nodeType: "waitTrigger", service: waitService.waitService.bind(waitService)},
+      {nodeType: "crm", service: this.crmService.crm.bind(this.crmService)},
     ];
   }
 

@@ -1,3 +1,5 @@
+import {authenticate, AuthenticationBindings} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -7,20 +9,21 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  HttpErrors,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
 } from '@loopback/rest';
+import {UserProfile} from '@loopback/security';
+import {PermissionKeys} from '../authorization/permission-keys';
 import {WorkflowBlueprint} from '../models';
 import {WorkflowBlueprintRepository, WorkflowRepository} from '../repositories';
-import {authenticate} from '@loopback/authentication';
-import {PermissionKeys} from '../authorization/permission-keys';
 
 export class WorkflowBlueprintController {
   constructor(
@@ -91,7 +94,7 @@ export class WorkflowBlueprintController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @get('/workflow-blueprints')
@@ -115,7 +118,7 @@ export class WorkflowBlueprintController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @patch('/workflow-blueprints')
@@ -140,7 +143,7 @@ export class WorkflowBlueprintController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @get('/workflow-blueprints/{id}')
@@ -162,7 +165,7 @@ export class WorkflowBlueprintController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @patch('/workflow-blueprints/{id}')
@@ -186,7 +189,7 @@ export class WorkflowBlueprintController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @put('/workflow-blueprints/{id}')
@@ -218,13 +221,14 @@ export class WorkflowBlueprintController {
   // Get blue print by process id
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @get('/workflow-blueprints/workflow/{id}')
   async getBluePrintById(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
   ): Promise<{success: boolean; message: string; data: {} | null}> {
-    const bluePrint = await this.workflowBlueprintRepository.findOne({
+    const bluePrint: any = await this.workflowBlueprintRepository.findOne({
       where: {
         workflowId: id,
       },
@@ -233,7 +237,14 @@ export class WorkflowBlueprintController {
       ]
     });
 
-    if (bluePrint) {
+    if (!bluePrint)
+      return {
+        success: false,
+        message: `No blue print found for workflow id ${id}`,
+        data: null
+      }
+
+    if (currentUser && currentUser?.permissions?.includes('super_admin') || bluePrint?.workflow?.userId === currentUser.id) {
       return {
         success: true,
         message: `Blue print for workflow id ${id}`,
@@ -241,10 +252,6 @@ export class WorkflowBlueprintController {
       }
     }
 
-    return {
-      success: false,
-      message: `No blue print found for workflow id ${id}`,
-      data: null
-    }
+    throw new HttpErrors.Unauthorized('Unauthorized access');
   }
 }

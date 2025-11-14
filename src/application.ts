@@ -27,6 +27,7 @@ import {TimeService} from './services/nodes/time.service';
 import {VariableService} from './services/nodes/variable.service';
 import {WaitService} from './services/nodes/wait.service';
 import {WebhookService} from './services/nodes/webhook.service';
+import {CRMService} from './services/nodes/crm.service';
 
 export {ApplicationConfig};
 
@@ -79,6 +80,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.AirflowDagService').toClass(AirflowDagService);
     this.bind('services.AgendaService').toClass(AgendaService);
     this.bind('services.WaitService').toClass(WaitService);
+    this.bind('services.CRMService').toClass(CRMService);
     this.bind('services.CRMHubSpot').toClass(CRMHubSpot);
     this.bind('services.MCPService').toClass(MCPService);
     this.bind('services.Connections').toClass(Connections);

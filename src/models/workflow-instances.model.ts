@@ -45,6 +45,11 @@ export class WorkflowInstances extends Entity {
   isScheduled?: boolean;
 
   @property({
+    type: 'number'
+  })
+  userId: number;
+
+  @property({
     type: 'date',
   })
   createdAt?: Date;

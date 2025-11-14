@@ -30,4 +30,25 @@ export class MCPService {
       throw error;
     }
   }
+
+  async mcpCallTool(toolName: string, parameters: object) {
+    try {
+      const payload = {
+        tool_name: toolName,
+        parameters
+      };
+
+      const response = await axios.post(`${process.env.MCP_SERVER_URL}/call_tool`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+
+      console.log('✅ MCP Tool calling successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.log('error while calling mcp tool :', error);
+    }
+  }
 }

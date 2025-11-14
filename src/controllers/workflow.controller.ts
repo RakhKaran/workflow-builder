@@ -1,3 +1,5 @@
+import {authenticate, AuthenticationBindings} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -7,20 +9,21 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  HttpErrors,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
 } from '@loopback/rest';
+import {UserProfile} from '@loopback/security';
+import {PermissionKeys} from '../authorization/permission-keys';
 import {Workflow} from '../models';
 import {WorkflowRepository} from '../repositories';
-import {authenticate} from '@loopback/authentication';
-import {PermissionKeys} from '../authorization/permission-keys';
 
 export class WorkflowController {
   constructor(
@@ -31,7 +34,7 @@ export class WorkflowController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @post('/workflows')
@@ -40,6 +43,7 @@ export class WorkflowController {
     content: {'application/json': {schema: getModelSchemaRef(Workflow)}},
   })
   async create(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       content: {
         'application/json': {
@@ -52,13 +56,13 @@ export class WorkflowController {
     })
     workflow: Omit<Workflow, 'id'>,
   ): Promise<Workflow> {
-    return this.workflowRepository.create(workflow);
+    return this.workflowRepository.create({...workflow, userId: currentUser.id});
   }
 
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @get('/workflows/count')
@@ -75,7 +79,7 @@ export class WorkflowController {
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @get('/workflows')
@@ -91,40 +95,51 @@ export class WorkflowController {
     },
   })
   async find(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.filter(Workflow) filter?: Filter<Workflow>,
   ): Promise<Workflow[]> {
-    return this.workflowRepository.find(filter);
+    if (currentUser && currentUser?.permissions?.includes('super_admin')) {
+      return this.workflowRepository.find(filter);
+    }
+
+    return this.workflowRepository.find({
+      ...filter,
+      where: {
+        ...filter?.where,
+        userId: currentUser.id
+      }
+    });
   }
+
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
+  //   },
+  // })
+  // @patch('/workflows')
+  // @response(200, {
+  //   description: 'Workflow PATCH success count',
+  //   content: {'application/json': {schema: CountSchema}},
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Workflow, {partial: true}),
+  //       },
+  //     },
+  //   })
+  //   workflow: Workflow,
+  //   @param.where(Workflow) where?: Where<Workflow>,
+  // ): Promise<Count> {
+  //   return this.workflowRepository.updateAll(workflow, where);
+  // }
 
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
-    },
-  })
-  @patch('/workflows')
-  @response(200, {
-    description: 'Workflow PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Workflow, {partial: true}),
-        },
-      },
-    })
-    workflow: Workflow,
-    @param.where(Workflow) where?: Where<Workflow>,
-  ): Promise<Count> {
-    return this.workflowRepository.updateAll(workflow, where);
-  }
-
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @get('/workflows/{id}')
@@ -137,16 +152,23 @@ export class WorkflowController {
     },
   })
   async findById(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
     @param.filter(Workflow, {exclude: 'where'}) filter?: FilterExcludingWhere<Workflow>
   ): Promise<Workflow> {
-    return this.workflowRepository.findById(id, filter);
+    const workflow = await this.workflowRepository.findById(id);
+
+    if (currentUser && (currentUser?.permissions?.include('super_admin') || workflow.userId === currentUser.id)) {
+      return this.workflowRepository.findById(id, filter);
+    }
+
+    throw new HttpErrors.Unauthorized('Unauthorized access');
   }
 
   @authenticate({
     strategy: 'jwt',
     options: {
-      required: [PermissionKeys.SUPER_ADMIN],
+      required: [PermissionKeys.SUPER_ADMIN, PermissionKeys.ADMIN, PermissionKeys.COMPANY],
     },
   })
   @patch('/workflows/{id}')
@@ -154,6 +176,7 @@ export class WorkflowController {
     description: 'Workflow PATCH success',
   })
   async updateById(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
     @requestBody({
       content: {
@@ -164,7 +187,14 @@ export class WorkflowController {
     })
     workflow: Workflow,
   ): Promise<void> {
-    await this.workflowRepository.updateById(id, workflow);
+    const workflowData = await this.workflowRepository.findById(id);
+
+    if (currentUser && (currentUser?.permissions?.include('super_admin') || workflowData.userId === currentUser.id)) {
+      await this.workflowRepository.updateById(id, workflow);
+
+    }
+
+    throw new HttpErrors.Unauthorized('Unauthorized access');
   }
 
   @authenticate({

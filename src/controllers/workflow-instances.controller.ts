@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {authenticate} from '@loopback/authentication';
+import {authenticate, AuthenticationBindings} from '@loopback/authentication';
 import {
   Count,
   CountSchema,
@@ -25,6 +25,8 @@ import path from 'path';
 import {PermissionKeys} from '../authorization/permission-keys';
 import {WorkflowInstances} from '../models';
 import {WorkflowInstancesRepository, WorkflowRepository} from '../repositories';
+import {inject} from '@loopback/core';
+import {UserProfile} from '@loopback/security';
 
 export class WorkflowInstancesController {
   constructor(
@@ -70,7 +72,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @post('/workflow-instances')
   @response(200, {
@@ -78,6 +80,7 @@ export class WorkflowInstancesController {
     content: {'application/json': {schema: getModelSchemaRef(WorkflowInstances)}},
   })
   async create(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       content: {
         'application/json': {
@@ -109,6 +112,7 @@ export class WorkflowInstancesController {
 
     const newWorkflowInstanceData: any = {
       ...workflowInstances,
+      userId: currentUser.id
     };
 
     const ingestionType = workflowData.workflowBlueprint?.bluePrint?.find(
@@ -146,7 +150,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @get('/workflow-instances/count')
   @response(200, {
@@ -161,7 +165,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @get('/workflow-instances')
   @response(200, {
@@ -176,14 +180,43 @@ export class WorkflowInstancesController {
     },
   })
   async find(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.filter(WorkflowInstances) filter?: Filter<WorkflowInstances>,
   ): Promise<WorkflowInstances[]> {
-    return this.workflowInstancesRepository.find({...filter, include: [{relation: 'workflow'}]});
+    if (currentUser && (currentUser.permissions.include('super_admin'))) {
+      return this.workflowInstancesRepository.find(
+        {
+          ...filter,
+          where: {
+            ...filter?.where,
+            isDeleted: false
+          },
+          include: [
+            {relation: 'workflow'},
+          ]
+        }
+      );
+    }
+    return this.workflowInstancesRepository.find(
+      {
+        ...filter,
+        where: {
+          ...filter?.where,
+          and: [
+            {isDeleted: false},
+            {userId: currentUser.id}
+          ]
+        },
+        include: [
+          {relation: 'workflow'}
+        ]
+      }
+    );
   }
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @patch('/workflow-instances')
   @response(200, {
@@ -206,7 +239,7 @@ export class WorkflowInstancesController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @get('/workflow-instances/{id}')
   @response(200, {
@@ -218,10 +251,11 @@ export class WorkflowInstancesController {
     },
   })
   async findById(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
     @param.filter(WorkflowInstances, {exclude: 'where'}) filter?: FilterExcludingWhere<WorkflowInstances>
   ): Promise<WorkflowInstances> {
-    return this.workflowInstancesRepository.findById(id,
+    const workflowInstance = await this.workflowInstancesRepository.findById(id,
       {
         ...filter,
         include: [
@@ -236,17 +270,23 @@ export class WorkflowInstancesController {
         ]
       }
     );
+    if (currentUser && (currentUser.permissions.include('super_admin') || currentUser.id === workflowInstance.userId)) {
+      return workflowInstance;
+    }
+
+    throw new HttpErrors.Unauthorized('Unauthorized access');
   }
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN]}
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.SUPER_ADMIN, PermissionKeys.COMPANY]}
   })
   @patch('/workflow-instances/{id}')
   @response(204, {
     description: 'WorkflowInstances PATCH success',
   })
   async updateById(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
     @requestBody({
       content: {
@@ -257,7 +297,12 @@ export class WorkflowInstancesController {
     })
     workflowInstances: WorkflowInstances,
   ): Promise<void> {
-    await this.workflowInstancesRepository.updateById(id, workflowInstances);
+    const workflowInstance = await this.workflowInstancesRepository.findById(id);
+    if (currentUser && (currentUser.permissions.includes('super_admin') || currentUser.id === workflowInstance.userId)) {
+      await this.workflowInstancesRepository.updateById(id, workflowInstances);
+    }
+
+    throw new HttpErrors.Unauthorized('Unauthorized access');
   }
 
   @authenticate({

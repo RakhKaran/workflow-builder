@@ -3,14 +3,11 @@ import {get, HttpErrors, param, post, requestBody, response} from '@loopback/res
 import {WorkflowConnections} from '../models';
 import {Connections} from '../services/connections.service';
 import {CRMHubSpot} from '../services/crm/crm-hubspot.service';
-import {MCPService} from '../services/mcp.service';
 
 export class CrmController {
   constructor(
     @inject('services.CRMHubSpot')
     private crmHubSpotService: CRMHubSpot,
-    @inject('services.MCPService')
-    private mcpService: MCPService,
     @inject('services.Connections')
     private connectionService: Connections,
   ) { }
@@ -75,6 +72,7 @@ export class CrmController {
         connectionType: 'hubspot',
         isConnectionEstablished: true,
         accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
         expiredAt,
         remark: 'HubSpot connection established successfully',
         isDeleted: false,
@@ -93,10 +91,7 @@ export class CrmController {
     @param.path.string('connectionId') connectionId: string,
   ) {
     try {
-      const env = {
-        "HUBSPOT_API_KEY": ''
-      }
-      const connectionResponse = await this.mcpService.mcpInitialConnection(env);
+      //
     } catch (error) {
       console.error('Error during HubSpot contact list:', error);
       throw error;

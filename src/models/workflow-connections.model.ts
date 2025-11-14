@@ -1,4 +1,4 @@
-import {Entity, model, property, belongsTo} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
 import {Workflow} from './workflow.model';
 
 @model()
@@ -33,6 +33,11 @@ export class WorkflowConnections extends Entity {
     required: true
   })
   accessToken: string;
+
+  @property({
+    type: 'string',
+  })
+  refreshToken?: string;
 
   @property({
     type: 'date',

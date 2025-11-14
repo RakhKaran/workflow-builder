@@ -1,4 +1,4 @@
-import { Entity, model, property, belongsTo} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
 import {WorkflowBlueprint} from './workflow-blueprint.model';
 
 @model()
@@ -20,6 +20,11 @@ export class Workflow extends Entity {
     type: 'string',
   })
   description?: string;
+
+  @property({
+    type: 'number'
+  })
+  userId: number;
 
   @property({
     type: 'date',
