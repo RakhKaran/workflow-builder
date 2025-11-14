@@ -30,6 +30,7 @@ import {WebhookService} from './services/nodes/webhook.service';
 import {CRMService} from './services/nodes/crm.service';
 import {AuthenticationComponent, registerAuthenticationStrategy} from '@loopback/authentication';
 import {JWTStrategy} from './authentication-strategy/jwt-strategy';
+import {JWTService} from './services/jwt-service';
 
 export {ApplicationConfig};
 
@@ -72,6 +73,7 @@ export class WorkflowBuilderApplication extends BootMixin(
 
   setUpBinding(): void {
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
+    this.bind('service.jwt.service').toClass(JWTService);
     // nodes services
     this.bind('services.Main').toClass(Main);
     this.bind('services.IngestionService').toClass(IngestionService);
