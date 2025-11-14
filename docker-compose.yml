@@ -25,10 +25,13 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0=" # REAL FERNET KEY
-      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project" # FIXED KEY NAME
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
+      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
 
-      # Auto admin user creation
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__WEBSERVER__EXPOSE_METADATA: "True"
+
       _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: "admin"
       _AIRFLOW_WWW_USER_PASSWORD: "admin"
@@ -37,9 +40,7 @@ services:
       _AIRFLOW_WWW_USER_EMAIL: "admin@test.com"
 
     command: >
-      bash -c "
-        airflow db migrate
-      "
+      bash -c "airflow db migrate"
 
     volumes:
       - ./src/dags:/opt/airflow/dags
@@ -58,8 +59,14 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
+
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__WEBSERVER__EXPOSE_METADATA: "True"
+
     volumes:
       - ./src/dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
     command: api-server
     ports:
       - "9090:8080"
@@ -76,8 +83,14 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
       AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
+
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__WEBSERVER__EXPOSE_METADATA: "True"
+
     volumes:
       - ./src/dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
     command: webserver
     ports:
       - "8082:8080"
@@ -93,8 +106,14 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
+
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__WEBSERVER__EXPOSE_METADATA: "True"
+
     volumes:
       - ./src/dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
     command: scheduler
 
   lb4-api:
