@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,12 +25,22 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "idp_workflow_project"
-      AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0=" # REAL FERNET KEY
+      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project" # FIXED KEY NAME
+
+      # Auto admin user creation
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: "admin"
+      _AIRFLOW_WWW_USER_PASSWORD: "admin"
+      _AIRFLOW_WWW_USER_FIRSTNAME: "Admin"
+      _AIRFLOW_WWW_USER_LASTNAME: "User"
+      _AIRFLOW_WWW_USER_EMAIL: "admin@test.com"
+
     command: >
       bash -c "
         airflow db migrate
       "
+
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -46,8 +56,8 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "idp_workflow_project"
-      AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
+      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
     volumes:
       - ./src/dags:/opt/airflow/dags
     command: api-server
@@ -64,8 +74,8 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "idp_workflow_project"
-      AIRFLOW__API_AUTH__JWT_SECRET: "idp_workflow_project"
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
+      AIRFLOW__API_AUTH__JWT_SECRET_KEY: "idp_workflow_project"
     volumes:
       - ./src/dags:/opt/airflow/dags
     command: webserver
@@ -82,7 +92,7 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: "idp_workflow_project"
+      AIRFLOW__CORE__FERNET_KEY: "S8p2L4l6g9VQe2pXjC5y7GkWbVtmJf7y2Xqj0CN4UJ0="
     volumes:
       - ./src/dags:/opt/airflow/dags
     command: scheduler
