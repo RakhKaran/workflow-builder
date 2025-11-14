@@ -42,7 +42,7 @@ services:
       AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
     command: bash -c "airflow db migrate"
     volumes:
-      - ./src/dags:/opt/airflow/dags:ro
+      - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
     restart: "no"
@@ -67,7 +67,7 @@ services:
       AIRFLOW__CORE__DAG_BAG_USE_BUNDLES: "False"
     command: api-server
     ports:
-      - "9090:8080"   # UI + API
+      - "9090:8080" # UI + API
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
