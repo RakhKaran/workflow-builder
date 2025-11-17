@@ -1,11 +1,11 @@
 from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
-from datetime import datetime
+from airflow.utils import timezone
 
 with DAG(
     dag_id="run_main_workflow",
     description="Run LB4 Main Service via Node.js",
-    start_date=datetime(2023, 1, 1),
+    start_date=timezone.datetime(2023, 1, 1),
     schedule=None,
     catchup=False,
     tags=["lb4", "workflow"],
@@ -17,8 +17,7 @@ with DAG(
         env={
             "MONGO_CONNECTION_STRING": "mongodb://admin:Admin%40123@host.docker.internal:27017/workflow?authSource=admin",
             "NODE_ENV": "production"
-        },
-        dag=dag,
+        }
     )
 
     run_main
