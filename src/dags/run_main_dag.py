@@ -19,3 +19,6 @@ with DAG(
             "NODE_ENV": "production"
         }
     )
+
+    run_main
+
