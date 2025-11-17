@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {authenticate, AuthenticationBindings} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -20,13 +21,12 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import {UserProfile} from '@loopback/security';
 import fs from 'fs';
 import path from 'path';
 import {PermissionKeys} from '../authorization/permission-keys';
 import {WorkflowInstances} from '../models';
 import {WorkflowInstancesRepository, WorkflowRepository} from '../repositories';
-import {inject} from '@loopback/core';
-import {UserProfile} from '@loopback/security';
 
 export class WorkflowInstancesController {
   constructor(
@@ -183,7 +183,7 @@ export class WorkflowInstancesController {
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.filter(WorkflowInstances) filter?: Filter<WorkflowInstances>,
   ): Promise<WorkflowInstances[]> {
-    if (currentUser && (currentUser.permissions.include('super_admin'))) {
+    if (currentUser && (currentUser.permissions.includes('super_admin'))) {
       return this.workflowInstancesRepository.find(
         {
           ...filter,
@@ -270,7 +270,7 @@ export class WorkflowInstancesController {
         ]
       }
     );
-    if (currentUser && (currentUser.permissions.include('super_admin') || currentUser.id === workflowInstance.userId)) {
+    if (currentUser && (currentUser.permissions.includes('super_admin') || currentUser.id === workflowInstance.userId)) {
       return workflowInstance;
     }
 
@@ -300,6 +300,7 @@ export class WorkflowInstancesController {
     const workflowInstance = await this.workflowInstancesRepository.findById(id);
     if (currentUser && (currentUser.permissions.includes('super_admin') || currentUser.id === workflowInstance.userId)) {
       await this.workflowInstancesRepository.updateById(id, workflowInstances);
+      return;
     }
 
     throw new HttpErrors.Unauthorized('Unauthorized access');

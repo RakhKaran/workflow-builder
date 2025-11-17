@@ -111,6 +111,16 @@ export class CRMService {
     try {
       let result: any;
 
+      if (component.contactTask === 1) {
+        const resolvedContactDetails = await this.resolveVariablesInObject(
+          component.contactDetails,
+          previousOutputs,
+        );
+
+        console.log('✅ Resolved Contact Details:', resolvedContactDetails);
+        result = await this.crmHubSpotService.fetchContacts(component.selectedConnection, resolvedContactDetails);
+      }
+
       // create contact..
       if (component.contactTask === 3) {
         const resolvedContactDetails = await this.resolveVariablesInObject(
@@ -120,6 +130,17 @@ export class CRMService {
 
         console.log('✅ Resolved Contact Details:', resolvedContactDetails);
         result = await this.crmHubSpotService.createContact(component.selectedConnection, resolvedContactDetails);
+      }
+
+      // update contact..
+      if (component.contactTask === 4) {
+        const resolvedContactDetails = await this.resolveVariablesInObject(
+          component.contactDetails,
+          previousOutputs,
+        );
+
+        console.log('✅ Resolved Contact Details:', resolvedContactDetails);
+        result = await this.crmHubSpotService.updateContact(component.selectedConnection, resolvedContactDetails);
       }
 
       return result;

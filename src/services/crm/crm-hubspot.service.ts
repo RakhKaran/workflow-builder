@@ -129,7 +129,75 @@ export class CRMHubSpot {
       }
     } catch (error) {
       console.error('Error while adding new contact: ', error.response?.data || error.message);
-      throw new HttpErrors.InternalServerError('Failed to refresh HubSpot token');
+      throw new HttpErrors.InternalServerError(`Error while adding new contact: ${error.response?.data || error.message}`);
+    }
+  }
+
+  async updateContact(connectionId: string, contactData: any) {
+    try {
+      const updatedConnectionData = await this.refreshToken(connectionId);
+      if (updatedConnectionData) {
+        const env = {
+          "HUBSPOT_API_KEY": updatedConnectionData.data.accessToken
+        }
+        const connectionResponse = await this.mcpService.mcpInitialConnection(env);
+        console.log('connection response', connectionResponse);
+        console.log('contact data', contactData);
+
+        // get contact by email...
+        const contactByEmailObject = {email: contactData.email}
+        const contactResponse = await this.mcpService.mcpCallTool('HubSpot.get_contact_by_email', contactByEmailObject);
+
+        console.log('contact response', contactResponse.result.structuredContent.result.contact_id);
+
+        if (contactResponse.result.structuredContent.result.contact_id) {
+          // update contact...
+          const updatedData = {
+            ...contactData,
+            contact_id: contactResponse.result.structuredContent.result.contact_id
+          };
+
+          const contactUpdateResponse = await this.mcpService.mcpCallTool('HubSpot.update_contact', updatedData);
+
+          return contactUpdateResponse;
+        }
+
+        throw new HttpErrors.BadRequest('No contact found to update');
+      }
+    } catch (error) {
+      console.error('Error while adding new contact: ', error.response?.data || error.message);
+      throw new HttpErrors.InternalServerError(`Error while adding new contact: ${error.response?.data || error.message}`);
+    }
+  }
+
+  async fetchContacts(connectionId: string, fetchConfig: any) {
+    try {
+      const updatedConnectionData = await this.refreshToken(connectionId);
+      if (updatedConnectionData) {
+        const env = {
+          "HUBSPOT_API_KEY": updatedConnectionData.data.accessToken
+        }
+        const connectionResponse = await this.mcpService.mcpInitialConnection(env);
+        console.log('connection response', connectionResponse);
+
+        // fetch contact list...
+        const contacts = await this.mcpService.mcpCallTool('HubSpot.list_hubspot_contacts', fetchConfig);
+        let contactsList: any = [];
+
+        if (contacts.result.structuredContent.result.contacts) {
+          contactsList = contacts.result.structuredContent.result.contacts.map((contact: any) => ({
+            contactId: contact.contact_id,
+            ...contact.properties
+          }));
+        }
+        return {
+          message: contacts.message,
+          result: contactsList,
+        };
+      }
+    } catch (error) {
+      console.error('Error while fetching contact list: ', error.response?.data || error.message);
+      throw new HttpErrors.InternalServerError(`Error while fetching contact list: ${error.response?.data || error.message}`);
     }
   }
 }
