@@ -3,7 +3,7 @@ import axios from 'axios';
 
 async function runWorkflow(workflowInstanceId: string, nodeId: string) {
   try {
-    const response = await axios.post(`http://31.97.224.212:3058/workflow/time-trigger`, {
+    const response = await axios.post(`https://workflow.docognize.ai/workflow/time-trigger`, {
       workflowInstanceId,
       nodeId
     });
