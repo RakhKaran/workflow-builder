@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -42,6 +42,8 @@ services:
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
       - ./plugins:/opt/airflow/plugins
     restart: "no"
 
@@ -65,6 +67,8 @@ services:
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
     restart: always
 
   airflow-scheduler:
@@ -83,6 +87,8 @@ services:
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
     restart: always
 
   airflow-dag-processor:
@@ -101,6 +107,8 @@ services:
     volumes:
       - ./src/dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
     restart: always
 
   lb4-api:
