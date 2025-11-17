@@ -18,7 +18,13 @@ with DAG(
 ) as dag:
     task1 = BashOperator(
         task_id='new_time_trigger',
-        bash_command='node /opt/airflow/dist/scripts/run-workflow.js 690c53905ccfd65a0cdbed59 2'
+        bash_command='node /opt/airflow/dist/scripts/run-workflow.js 690c53905ccfd65a0cdbed59 2',
+        env={
+            "MONGO_CONNECTION_STRING": "mongodb://admin:Admin%40123@host.docker.internal:27017/workflow?authSource=admin",
+            "NODE_ENV": "production"
+        },
+        executable="/bin/bash",  # ensures proper execution
+        dag=dag,
     )
 
     task1
