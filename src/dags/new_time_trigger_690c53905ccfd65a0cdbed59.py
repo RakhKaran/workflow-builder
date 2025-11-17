@@ -23,7 +23,6 @@ with DAG(
             "MONGO_CONNECTION_STRING": "mongodb://admin:Admin%40123@host.docker.internal:27017/workflow?authSource=admin",
             "NODE_ENV": "production"
         },
-        executable="/bin/bash",  # ensures proper execution
         dag=dag,
     )
 
