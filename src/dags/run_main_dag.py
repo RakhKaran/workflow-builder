@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.standard.operators.bash import BashOperator
+from airflow.operators.bash import BashOperator
 from airflow.utils import timezone
 
 with DAG(
@@ -20,4 +20,3 @@ with DAG(
         }
     )
 
-    run_main
