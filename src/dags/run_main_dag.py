@@ -1,11 +1,11 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.utils import timezone
+import pendulum
 
 with DAG(
     dag_id="run_main_workflow",
     description="Run LB4 Main Service via Node.js",
-    start_date=timezone.datetime(2023, 1, 1),
+    start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     schedule=None,
     catchup=False,
     tags=["lb4", "workflow"],
@@ -19,4 +19,3 @@ with DAG(
             "NODE_ENV": "production"
         }
     )
-
