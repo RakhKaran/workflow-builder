@@ -81,7 +81,7 @@ services:
 
     command: api-server --port 8085
     ports:
-      - "9090:8085"   # HOST 9090 → container 8085
+      - "9090:8085" # HOST 9090 → container 8085
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
@@ -106,7 +106,7 @@ services:
 
       AIRFLOW__API__AUTH_BACKEND: "airflow.api.auth.backend.default"
       # Needed so scheduler talks to correct API
-      AIRFLOW__SCHEDULER__API_CLIENT_ENDPOINT: "http://airflow-apiserver:8085"
+      AIRFLOW__SCHEDULER__API_CLIENT_ENDPOINT: "http://airflow-apiserver:8085/api/v2"
 
       MONGO_CONNECTION_STRING: "mongodb://admin:Admin%40123@host.docker.internal:27017/workflow?authSource=admin"
 
