@@ -73,7 +73,7 @@ services:
 
     command: api-server
     ports:
-      - "9090:8081"
+      - "9090:8080"
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
