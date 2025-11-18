@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -73,7 +73,7 @@ services:
 
     command: api-server
     ports:
-      - "9090:8080"
+      - "9090:8081"
     volumes:
       - ./src/dags:/opt/airflow/dags:ro
       - ./logs:/opt/airflow/logs
