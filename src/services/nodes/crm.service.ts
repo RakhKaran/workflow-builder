@@ -59,6 +59,23 @@ export class CRMService {
     try {
       const component = data?.component ?? null;
 
+      if (component.valueRef === 1 && component.crmType) {
+        const result = await this.promptAction(component, previousOutputs);
+
+        await this.nodeOutputRepository.create({
+          workflowOutputsId: outputDataId,
+          status: 1,
+          nodeId: data.id,
+          output: result,
+        });
+
+        return {
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          data: result,
+        };
+      }
+
       if (component?.crmType === 'hubspot') {
         const result = await this.hubspot(component, previousOutputs);
 
@@ -83,6 +100,28 @@ export class CRMService {
         nodeId: data.id,
         error: error.message || JSON.stringify(error),
       });
+      throw error;
+    }
+  }
+
+  // --------------------------------------------prompt action------------------------------------------
+  async promptAction(component: any, previousOutputs: any[]) {
+    try {
+      let result: any;
+
+      if (component.crmType === 'hubspot') {
+        const resolvedPrompt = await this.resolveVariablesInObject(
+          component.prompt,
+          previousOutputs,
+        );
+
+        console.log('✅ Resolved Contact Details:', resolvedPrompt);
+        result = await this.crmHubSpotService.promptActions(component.selectedConnection, resolvedPrompt);
+      }
+
+      return result;
+    } catch (error) {
+      console.log('Error in prompt action function: ', error);
       throw error;
     }
   }

@@ -112,6 +112,28 @@ export class CRMHubSpot {
     }
   }
 
+  // --------------------------------- Prompt API -----------------------------------------------------
+  async promptActions(connectionId: string, prompt: string) {
+    try {
+      const updatedConnectionData = await this.refreshToken(connectionId);
+      if (updatedConnectionData) {
+        const env = {
+          "HUBSPOT_API_KEY": updatedConnectionData.data.accessToken
+        }
+        const connectionResponse = await this.mcpService.mcpInitialConnection(env);
+        console.log('connection response', connectionResponse);
+
+        // fetch contact list...
+        const result = await this.mcpService.mcpCallTool('HubSpot.hubspot_action', {instruction: prompt});
+
+        return result;
+      }
+    } catch (error) {
+      console.error('Error while performing hubspot prompt action: ', error.response?.data || error.message);
+      throw new HttpErrors.InternalServerError(`Error while performing hubspot prompt action: ${error.response?.data || error.message}`);
+    }
+  }
+
   // --------------------------------- Contacts CRUD -----------------------------------------------------
   async createContact(connectionId: string, contactData: object) {
     try {
