@@ -3,6 +3,7 @@ import {repository} from "@loopback/repository";
 import {WorkflowInstancesRepository, WorkflowOutputsRepository} from "../../repositories";
 import {APIService} from './api.service';
 import {CaseService} from "./case.service";
+import {CodeService} from './code.service';
 import {CRMService} from './crm.service';
 import {IngestionService} from "./ingestion.service";
 import {IteratorService} from './iterator.service';
@@ -32,6 +33,8 @@ export class Main {
     private variableService: VariableService,
     @inject('services.IteratorService')
     private iteratorService: IteratorService,
+    @inject('services.CodeService')
+    private codeService: CodeService,
     @inject.getter('services.TimeService')
     private getTimeService: Getter<TimeService>,
     @inject.getter('services.WaitService')
@@ -53,6 +56,7 @@ export class Main {
       {nodeType: "api", service: this.apiService.api.bind(this.apiService)},
       {nodeType: "variable", service: this.variableService.setVariables.bind(this.variableService)},
       {nodeType: "iterator", service: this.iteratorService.iterator.bind(this.iteratorService)},
+      {nodeType: "code", service: this.codeService.code.bind(this.iteratorService)},
       {nodeType: "timeTrigger", service: timeService.timeTriggerNode.bind(timeService)},
       {nodeType: "waitTrigger", service: waitService.waitService.bind(waitService)},
       {nodeType: "crm", service: this.crmService.crm.bind(this.crmService)},

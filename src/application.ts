@@ -31,6 +31,7 @@ import {CRMService} from './services/nodes/crm.service';
 import {AuthenticationComponent, registerAuthenticationStrategy} from '@loopback/authentication';
 import {JWTStrategy} from './authentication-strategy/jwt-strategy';
 import {JWTService} from './services/jwt-service';
+import {CodeService} from './services/nodes/code.service';
 
 export {ApplicationConfig};
 
@@ -84,6 +85,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.VariableService').toClass(VariableService);
     this.bind('services.IteratorService').toClass(IteratorService);
     this.bind('services.TimeService').toClass(TimeService);
+    this.bind('services.CodeService').toClass(CodeService);
     this.bind('services.AirflowDagService').toClass(AirflowDagService);
     this.bind('services.AgendaService').toClass(AgendaService);
     this.bind('services.WaitService').toClass(WaitService);
