@@ -1,7 +1,8 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {HttpErrors} from '@loopback/rest';
-import {NodeOutputRepository, WorkflowOutputsRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository, WorkflowOutputsRepository} from '../../repositories';
+import {createWorkflowLog} from '../../utils/workflow-log.util';
 import {Main} from './main.service';
 
 export class WebhookService {
@@ -10,12 +11,22 @@ export class WebhookService {
     public workflowOutputsRepository: WorkflowOutputsRepository,
     @repository(NodeOutputRepository)
     public nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    public workflowLogEntryRepository: WorkflowLogEntryRepository,
     @inject('services.Main')
     public mainService: Main,
   ) { }
 
   async webhookTrigger(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName: data?.nodeName ?? 'Webhook',
+        logsDescription: 'Resolving webhook trigger output for workflow execution',
+        logType: 0,
+      });
       const nodeOutput = await this.nodeOutputRepository.findOne({
         where: {
           and: [
@@ -29,6 +40,14 @@ export class WebhookService {
         throw HttpErrors[404]("No webhook output found");
       }
 
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName: data?.nodeName ?? 'Webhook',
+        logsDescription: 'Webhook trigger output resolved successfully',
+        logType: 2,
+      });
       return {
         status: "success",
         timestamp: new Date().toISOString(),
@@ -36,6 +55,14 @@ export class WebhookService {
       };
     } catch (error) {
       console.error("Webhook service error:", error);
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName: data?.nodeName ?? 'Webhook',
+        logsDescription: `Webhook trigger failed: ${error.message}`,
+        logType: 1,
+      });
       throw new Error(`Webhook failed: ${error.message}`);
     }
   }
@@ -117,6 +144,14 @@ export class WebhookService {
         output: body,
         status: 0
       });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: createdOutput.id,
+        workflowInstancesId: workflowInstance.id,
+        nodeId: webhookNode.id,
+        nodeName: webhookNode.nodeName ?? 'Webhook',
+        logsDescription: 'Webhook validated successfully and workflow execution started',
+        logType: 2,
+      });
 
       if (!nodeOutput) {
         throw new HttpErrors[500](`Something went wrong`);
@@ -150,6 +185,14 @@ export class WebhookService {
         nodeId: webhookNodeId,
         error: error.message || JSON.stringify(error),
         status: 1
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: createdOutput.id,
+        workflowInstancesId: workflowInstance.id,
+        nodeId: webhookNodeId,
+        nodeName: webhookNode?.nodeName ?? 'Webhook',
+        logsDescription: `Webhook validation failed: ${error.message || JSON.stringify(error)}`,
+        logType: 1,
       });
 
       throw error;

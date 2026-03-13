@@ -1,18 +1,30 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 import {AgendaService} from '../agenda/agenda.service';
 
 export class WaitService {
   constructor(
     @repository(NodeOutputRepository)
     private nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
     @inject('services.AgendaService')
     private agendaService: AgendaService,
   ) { }
 
   async waitService(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
+    const nodeName = resolveNodeName(data);
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `Started ${nodeName} node execution`,
+        logType: 0,
+      });
       const component = data.component || null;
       const scheduleResponse = await this.schedule(data, component, previousOutputs, outputDataId, workflowInstanceData.workflowId);
       await this.nodeOutputRepository.create({
@@ -20,6 +32,14 @@ export class WaitService {
         status: 1,
         nodeId: data.id,
         output: scheduleResponse,
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node scheduled workflow continuation`,
+        logType: 3,
       });
 
     } catch (error) {
@@ -29,6 +49,14 @@ export class WaitService {
         status: 0,
         nodeId: data.id,
         error: error.message || JSON.stringify(error),
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node failed: ${error.message || JSON.stringify(error)}`,
+        logType: 1,
       });
       throw error;
     }

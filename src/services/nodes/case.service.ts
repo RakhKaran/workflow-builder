@@ -1,12 +1,13 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
 import {
     arrayConditions,
     booleanConditions,
     numberConditions,
     stringConditions,
 } from "../../utils/conditionCheckers";
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 import {VariableService} from './variable.service';
 
 type StringConditionKey = keyof typeof stringConditions;
@@ -15,12 +16,14 @@ type BooleanConditionKey = keyof typeof booleanConditions;
 type ArrayConditionKey = keyof typeof arrayConditions;
 
 export class CaseService {
-    constructor(
-        @repository(NodeOutputRepository)
-        public nodeOutputRepository: NodeOutputRepository,
-        @inject('services.VariableService')
-        private variableService: VariableService,
-    ) { }
+        constructor(
+            @repository(NodeOutputRepository)
+            public nodeOutputRepository: NodeOutputRepository,
+            @repository(WorkflowLogEntryRepository)
+            private workflowLogEntryRepository: WorkflowLogEntryRepository,
+            @inject('services.VariableService')
+            private variableService: VariableService,
+        ) { }
 
     // helper to resolve dynamic variables
     private resolveValue(
@@ -59,7 +62,16 @@ export class CaseService {
         workflowInstanceData: any,
         outputDataId: string
     ) {
+        const nodeName = resolveNodeName(data);
         try {
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `Started ${nodeName} node execution`,
+                logType: 0,
+            });
             const currentNode = workflowInstanceData?.workflow?.workflowBlueprint?.nodes
                 ?.find((node: any) => node?.id === data?.id);
 
@@ -290,6 +302,14 @@ export class CaseService {
                 nodeId: data.id,
                 output: {...results, finalResult}
             });
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `${nodeName} node completed with result ${finalResult ? 'success' : 'failed'}`,
+                logType: finalResult ? 2 : 3,
+            });
 
             console.log('final result', {...results, finalResult});
             return {
@@ -304,6 +324,14 @@ export class CaseService {
                 status: 0,
                 nodeId: data.id,
                 error: error.message || error,
+            });
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `${nodeName} node failed: ${error.message || error}`,
+                logType: 1,
             });
             throw error;
         }

@@ -1,6 +1,7 @@
 import {Getter, inject} from "@loopback/core";
 import {repository} from "@loopback/repository";
-import {WorkflowInstancesRepository, WorkflowOutputsRepository} from "../../repositories";
+import {WorkflowInstancesRepository, WorkflowLogEntryRepository, WorkflowOutputsRepository} from "../../repositories";
+import {createWorkflowLog, resolveNodeName} from "../../utils/workflow-log.util";
 import {APIService} from './api.service';
 import {CaseService} from "./case.service";
 import {CodeService} from './code.service';
@@ -19,6 +20,8 @@ export class Main {
     public workflowInstancesRepository: WorkflowInstancesRepository,
     @repository(WorkflowOutputsRepository)
     public workflowOutputsRepository: WorkflowOutputsRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
     @inject('services.IngestionService')
     private ingestionService: IngestionService,
     @inject('services.NotificationService')
@@ -72,6 +75,15 @@ export class Main {
     outputId: string
   ) {
     const servicesArray = await this.servicesMapper();
+    const nodeName = resolveNodeName(node);
+    await createWorkflowLog(this.workflowLogEntryRepository, {
+      workflowOutputsId: outputId,
+      workflowInstancesId: currentRunningWorkflowInstance?.id,
+      nodeId: node?.id,
+      nodeName,
+      logsDescription: `Executing ${nodeName} node`,
+      logType: 0,
+    });
 
     const serviceDef = servicesArray.find(
       (item) => item.nodeType === node.type
@@ -95,6 +107,14 @@ export class Main {
       nodeName: node.name,
       type: node.type,
       output: result,
+    });
+    await createWorkflowLog(this.workflowLogEntryRepository, {
+      workflowOutputsId: outputId,
+      workflowInstancesId: currentRunningWorkflowInstance?.id,
+      nodeId: node?.id,
+      nodeName,
+      logsDescription: `${nodeName} node execution completed`,
+      logType: 2,
     });
 
     return result;
@@ -185,6 +205,13 @@ export class Main {
 
   async main(outputId: string) {
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputId,
+        nodeId: outputId,
+        nodeName: 'Workflow',
+        logsDescription: 'Workflow execution started',
+        logType: 0,
+      });
       const workflowOutput = await this.workflowOutputsRepository.findById(outputId);
       const currentRunningWorkflowInstance =
         await this.workflowInstancesRepository.findById(workflowOutput.workflowInstancesId, {
@@ -242,6 +269,14 @@ export class Main {
             if (node.type === 'waitTrigger') {
               console.log('wait node encountered');
               waitNodeEncountered = true;
+              await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputId,
+                workflowInstancesId: currentRunningWorkflowInstance?.id,
+                nodeId: node?.id,
+                nodeName: resolveNodeName(node),
+                logsDescription: 'Workflow paused at wait node',
+                logType: 3,
+              });
               break;
             }
           }
@@ -251,6 +286,14 @@ export class Main {
             nodeName: node.name,
             output: null,
             error: err.message,
+          });
+          await createWorkflowLog(this.workflowLogEntryRepository, {
+            workflowOutputsId: outputId,
+            workflowInstancesId: currentRunningWorkflowInstance?.id,
+            nodeId: node?.id,
+            nodeName: resolveNodeName(node),
+            logsDescription: `${resolveNodeName(node)} node failed in workflow execution: ${err.message}`,
+            logType: 1,
           });
           break;
         }
@@ -273,11 +316,26 @@ export class Main {
 
         await this.workflowOutputsRepository.updateById(outputId, {status: executionResult.status === "completed" ? 1 : 0});
       }
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputId,
+        workflowInstancesId: currentRunningWorkflowInstance?.id,
+        nodeId: outputId,
+        nodeName: 'Workflow',
+        logsDescription: `Workflow execution ${executionResult.status}`,
+        logType: executionResult.status === "completed" ? 2 : 1,
+      });
       return {
         message: "Workflow execution finished",
       };
     } catch (error) {
       await this.workflowOutputsRepository.updateById(outputId, {status: 2});
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputId,
+        nodeId: outputId,
+        nodeName: 'Workflow',
+        logsDescription: `Workflow execution failed: ${error.message || error}`,
+        logType: 1,
+      });
       throw error;
     }
   }
@@ -319,6 +377,14 @@ export class Main {
     const nextNodeId = edges.find((edge: any) => edge.source === resumeNodeId).target;
 
     console.log('flow restarted', nextNodeId);
+    await createWorkflowLog(this.workflowLogEntryRepository, {
+      workflowOutputsId: outputId,
+      workflowInstancesId: instance?.id,
+      nodeId: resumeNodeId,
+      nodeName: 'Workflow',
+      logsDescription: `Workflow resumed from node ${resumeNodeId}`,
+      logType: 0,
+    });
 
     await this.executeFromNode(nextNodeId, blueprint, nodes, edges, outputData, instance, outputId);
 

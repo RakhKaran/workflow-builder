@@ -2,19 +2,32 @@ import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import axios, {AxiosRequestConfig} from 'axios';
 import FormData from 'form-data';
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 import {VariableService} from './variable.service';
 
 export class APIService {
   constructor(
     @repository(NodeOutputRepository)
     private nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
     @inject('services.VariableService')
     private variableService: VariableService,
   ) { }
 
   async api(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
+    const nodeName = resolveNodeName(data);
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `Started ${nodeName} node execution`,
+        logType: 0,
+      });
+
       const component = data?.component || null;
 
       // 🧠 Map numeric methods to string
@@ -147,6 +160,14 @@ export class APIService {
         nodeId: data.id,
         output: response.data,
       });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node completed successfully`,
+        logType: 2,
+      });
 
       return {
         status: 'success',
@@ -160,6 +181,14 @@ export class APIService {
         status: 0,
         nodeId: data.id,
         error: error.message || JSON.stringify(error),
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node failed: ${error.message || JSON.stringify(error)}`,
+        logType: 1,
       });
       throw error;
     }

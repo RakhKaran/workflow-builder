@@ -23,6 +23,15 @@ export class CRMHubSpot {
     const scopes = [
       'crm.objects.contacts.read',
       'crm.objects.contacts.write',
+      'crm.objects.custom.read',
+      'crm.objects.orders.write',
+      'crm.objects.custom.write',
+      'crm.objects.owners.read',
+      'crm.objects.orders.read',
+      'crm.objects.companies.write',
+      'crm.objects.companies.read',
+      'crm.objects.deals.read',
+      'crm.objects.deals.write',
       'content',
       'oauth'
     ];

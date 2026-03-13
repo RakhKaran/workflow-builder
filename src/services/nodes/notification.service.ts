@@ -1,7 +1,8 @@
 import {inject} from "@loopback/core";
 import {repository} from '@loopback/repository';
 import {EmailManagerBindings} from "../../keys";
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 import SITE_SETTINGS from "../../utils/config";
 import {EmailManager} from "../email.service";
 import {VariableService} from './variable.service';
@@ -19,12 +20,24 @@ export class NotificationService {
     public emailManager: EmailManager,
     @repository(NodeOutputRepository)
     public nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
     @inject('services.VariableService')
     private variableService: VariableService,
   ) { }
 
   async notification(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
+    const nodeName = resolveNodeName(data);
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `Started ${nodeName} node execution`,
+        logType: 0,
+      });
+
       const component = data?.component ?? null;
 
       if (component?.notificationSource === 'email') {
@@ -37,6 +50,14 @@ export class NotificationService {
           status: 1,
           nodeId: data.id,
           output: result,
+        });
+        await createWorkflowLog(this.workflowLogEntryRepository, {
+          workflowOutputsId: outputDataId,
+          workflowInstancesId: workflowInstanceData?.id,
+          nodeId: data?.id,
+          nodeName,
+          logsDescription: `${nodeName} node completed successfully`,
+          logType: 2,
         });
 
         return {
@@ -58,6 +79,14 @@ export class NotificationService {
         status: 0,
         nodeId: data.id,
         error: error.message || error,
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node failed: ${error.message || error}`,
+        logType: 1,
       });
       throw new Error(`Notification failed: ${error.message}`);
     }

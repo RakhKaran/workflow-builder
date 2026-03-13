@@ -1,10 +1,13 @@
 import {repository} from '@loopback/repository';
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 
 export class VariableService {
   constructor(
     @repository(NodeOutputRepository)
     public nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
   ) { }
 
   async setVariables(
@@ -13,7 +16,16 @@ export class VariableService {
     workflowInstanceData: any,
     outputDataId: string
   ) {
+    const nodeName = resolveNodeName(data);
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `Started ${nodeName} node execution`,
+        logType: 0,
+      });
       const variablesData = data?.component?.variables || [];
       const resolvedVariables: {variableName: string; variableValue: any}[] = [];
 
@@ -67,6 +79,14 @@ export class VariableService {
         nodeId: data.id,
         output: resolvedVariables
       });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node completed successfully`,
+        logType: 2,
+      });
 
       return {
         status: "success",
@@ -80,6 +100,14 @@ export class VariableService {
         status: 0,
         nodeId: data.id,
         error: error.message || error,
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node failed: ${error.message || error}`,
+        logType: 1,
       });
       throw new Error(`Notification failed: ${error.message}`);
     }

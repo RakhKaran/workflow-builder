@@ -5,7 +5,8 @@ import path from 'path';
 import { promisify } from "util";
 import { HttpErrors } from "@loopback/rest";
 import { repository } from "@loopback/repository";
-import { ProcessWorkflowOutputRepository } from "../../repositories";
+import { ProcessWorkflowOutputRepository, WorkflowLogEntryRepository } from "../../repositories";
+import { createWorkflowLog, resolveNodeName } from "../../utils/workflow-log.util";
 
 const readdir = promisify(fs.readdir);
 
@@ -14,15 +15,34 @@ export class IngestionService {
         @inject(STORAGE_DIRECTORY) private storageDirectory: string,
         @repository(ProcessWorkflowOutputRepository)
         public processWorkflowOutputRepository: ProcessWorkflowOutputRepository,
+        @repository(WorkflowLogEntryRepository)
+        private workflowLogEntryRepository: WorkflowLogEntryRepository,
     ) { }
 
     async ingestion(data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) {
+        const nodeName = resolveNodeName(data);
         try {
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `Started ${nodeName} node execution`,
+                logType: 0,
+            });
             if (data) {
                 const component = data?.component || null;
                 if (component) {
                     if (component.channelType === 'ui') {
                         const result = await this.channelTypeUI(workflowInstanceData.workflowInstanceFolderName);
+                        await createWorkflowLog(this.workflowLogEntryRepository, {
+                            workflowOutputsId: outputDataId,
+                            workflowInstancesId: workflowInstanceData?.id,
+                            nodeId: data?.id,
+                            nodeName,
+                            logsDescription: `${nodeName} node loaded UI channel data successfully`,
+                            logType: 2,
+                        });
                         return {
                             status: "success",
                             timestamp: new Date().toISOString(),
@@ -32,6 +52,14 @@ export class IngestionService {
 
                     else if (component.channelType === 'process') {
                         const result = await this.channelTypeProcess(workflowInstanceData.id);
+                        await createWorkflowLog(this.workflowLogEntryRepository, {
+                            workflowOutputsId: outputDataId,
+                            workflowInstancesId: workflowInstanceData?.id,
+                            nodeId: data?.id,
+                            nodeName,
+                            logsDescription: `${nodeName} node loaded process channel data successfully`,
+                            logType: 2,
+                        });
                         return {
                             status: "success",
                             timestamp: new Date().toISOString(),
@@ -46,9 +74,25 @@ export class IngestionService {
                 timestamp: new Date().toISOString(),
                 input: data
             };
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `${nodeName} node completed successfully`,
+                logType: 2,
+            });
 
             return processed;
         } catch (error) {
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+                workflowOutputsId: outputDataId,
+                workflowInstancesId: workflowInstanceData?.id,
+                nodeId: data?.id,
+                nodeName,
+                logsDescription: `${nodeName} node failed: ${error.message || error}`,
+                logType: 1,
+            });
             throw error;
         }
     }

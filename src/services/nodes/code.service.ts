@@ -2,13 +2,16 @@ import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {HttpErrors} from '@loopback/rest';
 import {VM, VMScript} from 'vm2';
-import {NodeOutputRepository} from '../../repositories';
+import {NodeOutputRepository, WorkflowLogEntryRepository} from '../../repositories';
+import {createWorkflowLog, resolveNodeName} from '../../utils/workflow-log.util';
 import {VariableService} from './variable.service';
 
 export class CodeService {
   constructor(
     @repository(NodeOutputRepository)
     private nodeOutputRepository: NodeOutputRepository,
+    @repository(WorkflowLogEntryRepository)
+    private workflowLogEntryRepository: WorkflowLogEntryRepository,
 
     @inject('services.VariableService')
     private variableService: VariableService,
@@ -68,7 +71,16 @@ export class CodeService {
    * Public entrypoint for executing the Code node
    */
   public code = async (data: any, previousOutputs: any[], workflowInstanceData: any, outputDataId: string) => {
+    const nodeName = resolveNodeName(data);
     try {
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `Started ${nodeName} node execution`,
+        logType: 0,
+      });
       const component = data?.component ?? null;
 
       if (component?.code) {
@@ -91,6 +103,14 @@ export class CodeService {
           nodeId: data.id,
           output: result,
         });
+        await createWorkflowLog(this.workflowLogEntryRepository, {
+          workflowOutputsId: outputDataId,
+          workflowInstancesId: workflowInstanceData?.id,
+          nodeId: data?.id,
+          nodeName,
+          logsDescription: `${nodeName} node completed successfully`,
+          logType: 2,
+        });
 
         return {
           status: 'success',
@@ -109,6 +129,14 @@ export class CodeService {
         status: 0,
         nodeId: data?.id,
         error: error?.message ?? JSON.stringify(error),
+      });
+      await createWorkflowLog(this.workflowLogEntryRepository, {
+        workflowOutputsId: outputDataId,
+        workflowInstancesId: workflowInstanceData?.id,
+        nodeId: data?.id,
+        nodeName,
+        logsDescription: `${nodeName} node failed: ${error?.message ?? JSON.stringify(error)}`,
+        logType: 1,
       });
 
       // Re-throw so upstream can handle it too
