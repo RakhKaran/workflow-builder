@@ -25,6 +25,7 @@
     "test:dev": "lb-mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "docker:build": "docker build -t workflow-builder .",
     "docker:run": "docker run -p 3000:3000 -d workflow-builder",
+    "seed:workflow-template-field-rules": "npm run build && node dist/scripts/seed-workflow-template-field-rules.js",
     "premigrate": "npm run build",
     "migrate": "node ./dist/migrate",
     "preopenapi-spec": "npm run build",

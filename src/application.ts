@@ -32,6 +32,7 @@ import {AuthenticationComponent, registerAuthenticationStrategy} from '@loopback
 import {JWTStrategy} from './authentication-strategy/jwt-strategy';
 import {JWTService} from './services/jwt-service';
 import {CodeService} from './services/nodes/code.service';
+import {WorkflowTemplateService} from './services/workflow-template.service';
 
 export {ApplicationConfig};
 
@@ -93,6 +94,7 @@ export class WorkflowBuilderApplication extends BootMixin(
     this.bind('services.CRMHubSpot').toClass(CRMHubSpot);
     this.bind('services.MCPService').toClass(MCPService);
     this.bind('services.Connections').toClass(Connections);
+    this.bind('services.WorkflowTemplate').toClass(WorkflowTemplateService);
   }
 
   protected configureFileUpload(destination?: string) {

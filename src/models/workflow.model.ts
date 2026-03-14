@@ -22,6 +22,13 @@ export class Workflow extends Entity {
   description?: string;
 
   @property({
+    type: 'boolean',
+    required: true,
+    default: false,
+  })
+  isTemplateUsed: boolean;
+
+  @property({
     type: 'number'
   })
   userId: number;
@@ -57,6 +64,11 @@ export class Workflow extends Entity {
     type: 'string',
   })
   remark?: string;
+
+  @property({
+    type: 'string',
+  })
+  workflowTemplatesId?: string;
 
   @belongsTo(() => WorkflowBlueprint)
   workflowBlueprintId: string;

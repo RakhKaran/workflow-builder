@@ -1,6 +1,7 @@
 export * from './ping.controller';
 export * from './workflow.controller';
 export * from './workflow-template.controller';
+export * from './workflow-template-field-rules.controller';
 export * from './workflow-blueprint.controller';
 export * from './workflow-instances.controller';
 export * from './workflow-exection.controller';

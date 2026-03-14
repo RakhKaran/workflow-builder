@@ -1,0 +1,24 @@
+[
+  {
+    "nodeName": "Ingestion",
+    "fieldPath": "password",
+    "action": "clear",
+    "description": "Clear stored ingestion password when cloning from template",
+    "isActive": true
+  },
+  {
+    "nodeName": "CRM",
+    "fieldPath": "selectedConnection",
+    "action": "clear",
+    "description": "Clear selected CRM connection reference for template clones",
+    "isActive": true
+  },
+  {
+    "nodeName": "Webhook",
+    "fieldPath": "webhookId",
+    "action": "regenerate",
+    "regenerateType": "webhookId",
+    "description": "Regenerate webhook id for each workflow created from template",
+    "isActive": true
+  }
+]

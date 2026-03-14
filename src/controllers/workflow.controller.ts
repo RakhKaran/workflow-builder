@@ -24,11 +24,14 @@ import {UserProfile} from '@loopback/security';
 import {PermissionKeys} from '../authorization/permission-keys';
 import {Workflow} from '../models';
 import {WorkflowRepository} from '../repositories';
+import {WorkflowTemplateService} from '../services/workflow-template.service';
 
 export class WorkflowController {
   constructor(
     @repository(WorkflowRepository)
     public workflowRepository: WorkflowRepository,
+    @inject('services.WorkflowTemplate')
+    private workflowTemplateService: WorkflowTemplateService,
   ) { }
 
   @authenticate({
@@ -56,7 +59,21 @@ export class WorkflowController {
     })
     workflow: Omit<Workflow, 'id'>,
   ): Promise<Workflow> {
-    return this.workflowRepository.create({...workflow, userId: currentUser.id});
+    const createdWorkflow = await this.workflowRepository.create({...workflow, userId: currentUser.id});
+
+    if (createdWorkflow.isTemplateUsed && createdWorkflow.id && createdWorkflow.workflowTemplatesId) {
+      try {
+        await this.workflowTemplateService.createBlueprintFromTemplate(
+          createdWorkflow.id,
+          createdWorkflow.workflowTemplatesId,
+        );
+      } catch (error) {
+        await this.workflowRepository.deleteById(createdWorkflow.id);
+        throw error;
+      }
+    }
+
+    return createdWorkflow;
   }
 
   @authenticate({
