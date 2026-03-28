@@ -1,5 +1,5 @@
-import {authenticate, AuthenticationBindings} from '@loopback/authentication';
-import {inject} from '@loopback/core';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { inject } from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -20,11 +20,11 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
-import {PermissionKeys} from '../authorization/permission-keys';
-import {Workflow} from '../models';
-import {WorkflowRepository} from '../repositories';
-import {WorkflowTemplateService} from '../services/workflow-template.service';
+import { UserProfile } from '@loopback/security';
+import { PermissionKeys } from '../authorization/permission-keys';
+import { Workflow } from '../models';
+import { WorkflowRepository } from '../repositories';
+import { WorkflowTemplateService } from '../services/workflow-template.service';
 
 export class WorkflowController {
   constructor(
@@ -43,7 +43,7 @@ export class WorkflowController {
   @post('/workflows')
   @response(200, {
     description: 'Workflow model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Workflow)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Workflow) } },
   })
   async create(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -59,7 +59,7 @@ export class WorkflowController {
     })
     workflow: Omit<Workflow, 'id'>,
   ): Promise<Workflow> {
-    const createdWorkflow = await this.workflowRepository.create({...workflow, userId: currentUser.id});
+    const createdWorkflow = await this.workflowRepository.create({ ...workflow, userId: currentUser.id });
 
     if (createdWorkflow.isTemplateUsed && createdWorkflow.id && createdWorkflow.workflowTemplatesId) {
       try {
@@ -85,7 +85,7 @@ export class WorkflowController {
   @get('/workflows/count')
   @response(200, {
     description: 'Workflow model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Workflow) where?: Where<Workflow>,
@@ -106,7 +106,7 @@ export class WorkflowController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Workflow, {includeRelations: true}),
+          items: getModelSchemaRef(Workflow, { includeRelations: true }),
         },
       },
     },
@@ -164,18 +164,18 @@ export class WorkflowController {
     description: 'Workflow model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Workflow, {includeRelations: true}),
+        schema: getModelSchemaRef(Workflow, { includeRelations: true }),
       },
     },
   })
   async findById(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('id') id: string,
-    @param.filter(Workflow, {exclude: 'where'}) filter?: FilterExcludingWhere<Workflow>
+    @param.filter(Workflow, { exclude: 'where' }) filter?: FilterExcludingWhere<Workflow>
   ): Promise<Workflow> {
     const workflow = await this.workflowRepository.findById(id);
 
-    if (currentUser && (currentUser?.permissions?.include('super_admin') || workflow.userId === currentUser.id)) {
+    if (currentUser && (currentUser?.permissions?.includes('super_admin') || workflow.userId === currentUser.id)) {
       return this.workflowRepository.findById(id, filter);
     }
 
@@ -198,17 +198,16 @@ export class WorkflowController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Workflow, {partial: true}),
+          schema: getModelSchemaRef(Workflow, { partial: true }),
         },
       },
     })
     workflow: Workflow,
   ): Promise<void> {
     const workflowData = await this.workflowRepository.findById(id);
-
-    if (currentUser && (currentUser?.permissions?.include('super_admin') || workflowData.userId === currentUser.id)) {
+    if (currentUser && (currentUser?.permissions?.includes('super_admin') || workflowData.userId === currentUser.id)) {
       await this.workflowRepository.updateById(id, workflow);
-
+      return;
     }
 
     throw new HttpErrors.Unauthorized('Unauthorized access');
