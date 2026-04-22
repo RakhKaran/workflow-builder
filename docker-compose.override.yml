@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    volumes:
+      - ./src/dags:/opt/airflow/dags
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    volumes:
+      - ./src/dags:/opt/airflow/dags
+      - ./dist:/opt/airflow/dist
+      - ./package.json:/opt/airflow/package.json
