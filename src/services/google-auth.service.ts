@@ -37,6 +37,7 @@ export interface GoogleAuthPayload {
   token_type?: string;
 }
 
+// google auth service
 @injectable({scope: BindingScope.TRANSIENT})
 export class GoogleAuthService {
   private readonly googleClientId = process.env.GOOGLE_CLIENT_ID ?? '';
