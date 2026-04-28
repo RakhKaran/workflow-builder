@@ -142,7 +142,7 @@ export class WebhookService {
         workflowOutputsId: createdOutput.id,
         nodeId: webhookNode.id,
         output: body,
-        status: 0
+        status: 1
       });
       await createWorkflowLog(this.workflowLogEntryRepository, {
         workflowOutputsId: createdOutput.id,
@@ -184,7 +184,7 @@ export class WebhookService {
         workflowOutputsId: createdOutput.id,
         nodeId: webhookNodeId,
         error: error.message || JSON.stringify(error),
-        status: 1
+        status: 0
       });
       await createWorkflowLog(this.workflowLogEntryRepository, {
         workflowOutputsId: createdOutput.id,
