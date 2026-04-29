@@ -9,7 +9,7 @@ const SITE_SETTINGS = {
     },
     auth: {
       user: 'testing.combatsolution@gmail.com',
-      pass: 'jpvmspsshgexuewy',
+      pass: 'opbsktahueodamem',
     },
   },
   fromMail: 'testing.combatsolution@gmail.com',
