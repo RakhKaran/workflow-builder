@@ -12,3 +12,4 @@ export * from './crm.controller';
 export * from './google-auth.controller';
 export * from './workflow-connections-workflow.controller';
 export * from './workflow-connections.controller';
+export * from './workflow-dashboard.controller';
