@@ -160,7 +160,9 @@ export class WorkflowInstancesController {
   async count(
     @param.where(WorkflowInstances) where?: Where<WorkflowInstances>,
   ): Promise<Count> {
-    return this.workflowInstancesRepository.count(where);
+    return this.workflowInstancesRepository.count({
+      and: [{isDeleted: false}, where ?? {}],
+    });
   }
 
   @authenticate({
@@ -270,6 +272,8 @@ export class WorkflowInstancesController {
         ]
       }
     );
+
+    if (workflowInstance.isDeleted) throw new HttpErrors.NotFound('Workflow instance not found');
     if (currentUser && (currentUser.permissions.includes('super_admin') || currentUser.id === workflowInstance.userId)) {
       return workflowInstance;
     }
@@ -330,6 +334,14 @@ export class WorkflowInstancesController {
     description: 'WorkflowInstances DELETE success',
   })
   async deleteById(@param.path.string('id') id: string): Promise<void> {
+    const workflowInstance = await this.workflowInstancesRepository.findById(id);
     await this.workflowInstancesRepository.deleteById(id);
+
+    if (workflowInstance.workflowInstanceFolderName) {
+      const folderPath = path.join(__dirname, '../../.sandbox', `${workflowInstance.workflowInstanceFolderName}`);
+      if (fs.existsSync(folderPath)) {
+        fs.rmSync(folderPath, {recursive: true, force: true});
+      }
+    }
   }
 }

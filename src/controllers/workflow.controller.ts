@@ -23,13 +23,17 @@ import {
 import { UserProfile } from '@loopback/security';
 import { PermissionKeys } from '../authorization/permission-keys';
 import { Workflow } from '../models';
-import { WorkflowRepository } from '../repositories';
+import { WorkflowInstancesRepository, WorkflowRepository } from '../repositories';
 import { WorkflowTemplateService } from '../services/workflow-template.service';
+import fs from 'fs';
+import path from 'path';
 
 export class WorkflowController {
   constructor(
     @repository(WorkflowRepository)
     public workflowRepository: WorkflowRepository,
+    @repository(WorkflowInstancesRepository)
+    public workflowInstancesRepository: WorkflowInstancesRepository,
     @inject('services.WorkflowTemplate')
     private workflowTemplateService: WorkflowTemplateService,
   ) { }
@@ -88,9 +92,14 @@ export class WorkflowController {
     content: { 'application/json': { schema: CountSchema } },
   })
   async count(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.where(Workflow) where?: Where<Workflow>,
   ): Promise<Count> {
-    return this.workflowRepository.count(where);
+    const baseWhere: Where<Workflow> = currentUser?.permissions?.includes('super_admin')
+      ? { and: [{ isDeleted: false }, where ?? {}] }
+      : { and: [{ isDeleted: false }, { userId: currentUser.id }, where ?? {}] };
+
+    return this.workflowRepository.count(baseWhere);
   }
 
   @authenticate({
@@ -116,15 +125,19 @@ export class WorkflowController {
     @param.filter(Workflow) filter?: Filter<Workflow>,
   ): Promise<Workflow[]> {
     if (currentUser && currentUser?.permissions?.includes('super_admin')) {
-      return this.workflowRepository.find(filter);
+      return this.workflowRepository.find({
+        ...filter,
+        where: {
+          and: [{ isDeleted: false }, filter?.where ?? {}],
+        },
+      });
     }
 
     return this.workflowRepository.find({
       ...filter,
       where: {
-        ...filter?.where,
-        userId: currentUser.id
-      }
+        and: [{ isDeleted: false }, { userId: currentUser.id }, filter?.where ?? {}],
+      },
     });
   }
 
@@ -176,6 +189,7 @@ export class WorkflowController {
     const workflow = await this.workflowRepository.findById(id);
 
     if (currentUser && (currentUser?.permissions?.includes('super_admin') || workflow.userId === currentUser.id)) {
+      if (workflow.isDeleted) throw new HttpErrors.NotFound('Workflow not found');
       return this.workflowRepository.findById(id, filter);
     }
 
@@ -241,6 +255,27 @@ export class WorkflowController {
     description: 'Workflow DELETE success',
   })
   async deleteById(@param.path.string('id') id: string): Promise<void> {
-    await this.workflowRepository.deleteById(id);
+    const deletedAt = new Date();
+
+    // Soft-delete workflow
+    await this.workflowRepository.updateById(id, { isDeleted: true, deletedAt });
+
+    // Hard-delete workflow instances under the workflow
+    const instances = await this.workflowInstancesRepository.find({
+      where: { workflowId: id },
+      fields: { id: true, workflowInstanceFolderName: true },
+    });
+
+    for (const instance of instances) {
+      if (!instance.id) continue;
+      await this.workflowInstancesRepository.deleteById(instance.id);
+
+      if (instance.workflowInstanceFolderName) {
+        const folderPath = path.join(__dirname, '../../.sandbox', `${instance.workflowInstanceFolderName}`);
+        if (fs.existsSync(folderPath)) {
+          fs.rmSync(folderPath, { recursive: true, force: true });
+        }
+      }
+    }
   }
 }
