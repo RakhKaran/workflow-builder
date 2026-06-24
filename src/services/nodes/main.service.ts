@@ -239,6 +239,7 @@ export class Main {
       const workflowBlueprint = workflow?.workflowBlueprint;
 
       const nodesData = workflowBlueprint?.nodes ?? [];
+      const allEdges: any[] = workflowBlueprint?.edges ?? [];
       const outputData: Array<{
         nodeId: string;
         nodeName: string;
@@ -246,9 +247,30 @@ export class Main {
         error?: string;
       }> = [];
 
+      // Structural node types that are never executed directly
+      const SKIP_TYPES = new Set(['customAddNode', 'case', 'iteratorEnd']);
+
+      // The trigger node is always first in the array — the initial customAddNode
+      // placeholder is replaced (not appended) when the user adds the first real node.
+      const startNode = nodesData[0];
+
       let waitNodeEncountered = false;
-      // Sequential execution of nodes
-      for (const node of nodesData) {
+
+      if (!startNode) {
+        throw new Error('No nodes found in workflow blueprint');
+      }
+
+      // Walk the graph by edges instead of array index so that nodes inserted
+      // in between (which land at the end of the array) are executed in the
+      // correct topological order.
+      let currentNodeId: string | null = startNode.id;
+
+      while (currentNodeId) {
+        const node = nodesData.find((n: any) => n.id === currentNodeId);
+
+        // Stop at structural placeholders or missing nodes
+        if (!node || SKIP_TYPES.has(node.type)) break;
+
         try {
           if (node.type === 'decision') {
             await this.executeDecisionNode(
@@ -259,30 +281,30 @@ export class Main {
               currentRunningWorkflowInstance,
               outputId
             );
-            break;
-          } else {
-            await this.executeNode(
-              node,
-              workflowBlueprint,
-              nodesData,
-              outputData,
-              currentRunningWorkflowInstance,
-              outputId
-            );
+            break; // decision node handles its own branch traversal internally
+          }
 
-            if (node.type === 'waitTrigger') {
-              console.log('wait node encountered');
-              waitNodeEncountered = true;
-              await createWorkflowLog(this.workflowLogEntryRepository, {
-                workflowOutputsId: outputId,
-                workflowInstancesId: currentRunningWorkflowInstance?.id,
-                nodeId: node?.id,
-                nodeName: resolveNodeName(node),
-                logsDescription: 'Workflow paused at wait node',
-                logType: 3,
-              });
-              break;
-            }
+          await this.executeNode(
+            node,
+            workflowBlueprint,
+            nodesData,
+            outputData,
+            currentRunningWorkflowInstance,
+            outputId
+          );
+
+          if (node.type === 'waitTrigger') {
+            console.log('wait node encountered');
+            waitNodeEncountered = true;
+            await createWorkflowLog(this.workflowLogEntryRepository, {
+              workflowOutputsId: outputId,
+              workflowInstancesId: currentRunningWorkflowInstance?.id,
+              nodeId: node?.id,
+              nodeName: resolveNodeName(node),
+              logsDescription: 'Workflow paused at wait node',
+              logType: 3,
+            });
+            break;
           }
         } catch (err: any) {
           outputData.push({
@@ -300,6 +322,18 @@ export class Main {
             logType: 1,
           });
           break;
+        }
+
+        // Advance to the next node by following the outgoing edge.
+        // Skip any structural placeholder nodes in the path.
+        const nextEdge = allEdges.find((e: any) => e.source === currentNodeId);
+        currentNodeId = nextEdge?.target ?? null;
+
+        while (currentNodeId) {
+          const peek = nodesData.find((n: any) => n.id === currentNodeId);
+          if (!peek || !SKIP_TYPES.has(peek.type)) break;
+          const skipEdge = allEdges.find((e: any) => e.source === currentNodeId);
+          currentNodeId = skipEdge?.target ?? null;
         }
       }
 
