@@ -8,8 +8,10 @@ export class MCPService {
       const payload = {
         mcpServers: {
           'maps-and-gmail-server': {
-            command: '/home/ubuntu/mcp_bot_builder/mcp-env/bin/python',
-            args: ['/home/ubuntu/mcp_bot_builder/mcp_server.py'],
+            // command: '/home/ubuntu/mcp_bot_builder/mcp-env/bin/python',
+            command: '/usr/local/bin/python',
+            // args: ['/home/ubuntu/mcp_bot_builder/mcp_server.py'],
+            args: ['/app/mcp_server.py'],
             env,
             transport: 'stdio',
           },
