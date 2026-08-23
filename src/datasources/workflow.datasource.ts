@@ -1,10 +1,14 @@
-import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
-import {juggler} from '@loopback/repository';
+import { inject, lifeCycleObserver, LifeCycleObserver } from '@loopback/core';
+import { juggler } from '@loopback/repository';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+const mongoUrl = process.env.MONGO_CONNECTION_STRING ?? '';
 
 const config = {
   name: 'web_scrapper',
   connector: 'mongodb',
-  url: 'mongodb+srv://karanrakh19:Dxafj3dUABszmb83@todolist.ui3hm4s.mongodb.net/workflow?retryWrites=true&w=majority&appName=todolist',
+  url: mongoUrl,
   useNewUrlParser: true,
   useUnifiedTopology: true,
   connectTimeoutMS: 30000,   // Increase initial connection timeout to 30 seconds
@@ -12,6 +16,18 @@ const config = {
   serverSelectionTimeoutMS: 30000, // How long to wait to find a suitable server
   retryWrites: true,         // Ensure writes are retried on transient failures
 };
+
+// const config = {
+//   name: 'web_scrapper',
+//   connector: 'mongodb',
+//   url: 'mongodb+srv://karanrakh19:Dxafj3dUABszmb83@todolist.ui3hm4s.mongodb.net/workflow?retryWrites=true&w=majority&appName=todolist',
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+//   connectTimeoutMS: 30000,   // Increase initial connection timeout to 30 seconds
+//   socketTimeoutMS: 30000,    // Increase socket timeout to 30 seconds
+//   serverSelectionTimeoutMS: 30000, // How long to wait to find a suitable server
+//   retryWrites: true,         // Ensure writes are retried on transient failures
+// };
 
 // Observe application's life cycle to disconnect the datasource when
 // application is stopped. This allows the application to be shut down
@@ -24,7 +40,7 @@ export class WorkflowDataSource extends juggler.DataSource
   static readonly defaultConfig = config;
 
   constructor(
-    @inject('datasources.config.workflow', {optional: true})
+    @inject('datasources.config.workflow', { optional: true })
     dsConfig: object = config,
   ) {
     super(dsConfig);
